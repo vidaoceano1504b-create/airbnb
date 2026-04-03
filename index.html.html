@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depto Airbnb — Registros</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8; --surface: #faf7f2; --card: #ffffff;
+    --accent: #c8472a; --accent2: #2a6e3f; --text: #1a1410;
+    --muted: #7a6f63; --border: #e0d9cf; --tag-bg: #f0ebe2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--text); color: #f5f0e8;
+    padding: 28px 40px 24px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+  }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; }
+  header h1 span { color: var(--accent); }
+  header .subtitle { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: #a09890; margin-top: 6px; letter-spacing: 1px; text-transform: uppercase; }
+  .header-stats { display: flex; gap: 32px; align-items: flex-end; }
+  .hstat { text-align: right; }
+  .hstat .val { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #f5f0e8; }
+  .hstat .lbl { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: #a09890; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* AUTH BANNER */
+  .auth-banner {
+    background: #fff8e1; border-bottom: 2px solid #f0c040;
+    padding: 14px 40px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .auth-banner p { font-size: 0.88rem; color: #7a5c00; }
+  .auth-banner p strong { color: #5a3e00; }
+  .btn-login {
+    padding: 8px 20px; background: #4285f4; color: white; border: none;
+    border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-login:hover { background: #2a6dd9; }
+  .btn-logout {
+    padding: 6px 14px; background: transparent; color: #7a5c00;
+    border: 1.5px solid #f0c040; border-radius: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem; cursor: pointer;
+  }
+  .auth-ok { background: #e8f5e9; border-color: #81c784; }
+  .auth-ok p { color: #1b5e20; }
+
+  .sync-status {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    padding: 3px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .sync-status.syncing { background: #fff3cd; color: #856404; }
+  .sync-status.synced  { background: #d1edda; color: #155724; }
+  .sync-status.error   { background: #f8d7da; color: #721c24; }
+  .sync-status.offline { background: #e2e3e5; color: #383d41; }
+
+  .main { display: flex; height: calc(100vh - 145px); }
+
+  .sidebar {
+    width: 340px; min-width: 300px; background: var(--surface);
+    border-right: 1.5px solid var(--border); overflow-y: auto;
+    padding: 28px 24px; flex-shrink: 0;
+  }
+  .sidebar h2 {
+    font-family: 'DM Serif Display', serif; font-size: 1.25rem;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar h2::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-family: 'DM Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 5px; }
+  input, select {
+    width: 100%; padding: 9px 12px; background: var(--card);
+    border: 1.5px solid var(--border); border-radius: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--text);
+    transition: border-color 0.2s; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .calc-preview {
+    background: var(--tag-bg); border: 1.5px dashed var(--border);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;
+  }
+  .cp-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+  .cp-row.total { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; font-weight: 600; color: var(--text); font-size: 0.92rem; }
+  .cp-row .val { font-family: 'DM Mono', monospace; color: var(--accent2); font-weight: 500; }
+  .cp-row.total .val { color: var(--accent); }
+
+  .btn-add {
+    width: 100%; padding: 12px; background: var(--accent); color: white;
+    border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-add:hover { background: #a33820; transform: translateY(-1px); }
+  .btn-add:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+  .btn-reload {
+    width: 100%; margin-top: 10px; padding: 10px; background: transparent;
+    color: var(--accent2); border: 1.5px solid var(--accent2); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-reload:hover { background: var(--accent2); color: white; }
+
+  .table-area { flex: 1; overflow-y: auto; padding: 28px 32px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
+  .table-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.25rem; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--card); font-size: 0.78rem; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); transition: all 0.15s; }
+  .filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--text); color: var(--bg); }
+  thead th { padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; text-align: left; font-weight: 500; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: var(--tag-bg); }
+  tbody td { padding: 10px 12px; font-size: 0.83rem; vertical-align: middle; }
+  td.mono { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+  td.money { font-family: 'DM Mono', monospace; font-size: 0.82rem; text-align: right; white-space: nowrap; }
+  td.money.positive { color: var(--accent2); }
+  td.money.accent { color: var(--accent); font-weight: 600; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .badge-airbnb  { background: #ffe0da; color: #c8472a; }
+  .badge-familia { background: #daeadf; color: #2a6e3f; }
+  .badge-amigo   { background: #dde8f5; color: #1e4e8c; }
+  .badge-referido{ background: #f5e8dd; color: #8c4e1e; }
+  .badge-nosotros{ background: #e8e8e8; color: #555; }
+  .badge-booking { background: #dde8f5; color: #003580; }
+  .epoca-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.67rem; font-family: 'DM Mono', monospace; background: var(--tag-bg); color: var(--muted); white-space: nowrap; }
+
+  .loading-row td { text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.82rem; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; border-left: 4px solid var(--accent); max-width: 320px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  @media (max-width: 900px) {
+    .main { flex-direction: column; height: auto; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1.5px solid var(--border); }
+    .header-stats { display: none; }
+    header, .auth-banner { padding: 20px; }
+    .table-area { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Depto <span>Airbnb</span></h1>
+    <div class="subtitle">Registro de ingresos</div>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="val" id="hstat-total">$—</div><div class="lbl">Total ganancia</div></div>
+    <div class="hstat"><div class="val" id="hstat-noches">—</div><div class="lbl">Noches totales</div></div>
+    <div class="hstat"><div class="val" id="hstat-reservas">—</div><div class="lbl">Reservas</div></div>
+    <div class="hstat"><span class="sync-status offline" id="sync-status">⬤ Sin conectar</span></div>
+  </div>
+</header>
+
+<!-- AUTH BANNER -->
+<div class="auth-banner" id="auth-banner">
+  <p><strong>Conecta tu Google Sheets</strong> para leer y guardar reservas directamente en tu planilla.</p>
+  <button class="btn-login" onclick="signIn()">
+    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Iniciar sesión con Google
+  </button>
+</div>
+
+<div class="main">
+  <!-- FORM -->
+  <aside class="sidebar">
+    <h2>Nueva reserva</h2>
+
+    <div class="form-group">
+      <label>Nombre huésped</label>
+      <input type="text" id="f-nombre" placeholder="Ej: Ana Pascual">
+    </div>
+    <div class="form-group">
+      <label>Relación</label>
+      <select id="f-relacion">
+        <option value="airbnb">Airbnb</option>
+        <option value="airbnb adicional">Airbnb adicional</option>
+        <option value="Booking">Booking</option>
+        <option value="directo post-airbnb">Directo post-Airbnb</option>
+        <option value="familia_1">Familia 1</option>
+        <option value="familia_2">Familia 2</option>
+        <option value="amigo_1">Amigo 1</option>
+        <option value="amigo_2">Amigo 2</option>
+        <option value="referido">Referido</option>
+        <option value="nosotros">Nosotros</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Época</label>
+      <select id="f-epoca">
+        <option value="temp. alta">Temporada alta</option>
+        <option value="verano">Verano</option>
+        <option value="v.invierno">Vacaciones invierno</option>
+        <option value="feriado">Feriado</option>
+        <option value="finde">Fin de semana</option>
+        <option value="temp. baja">Temp. baja</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="form-group"><label>Entrada</label><input type="date" id="f-entrada"></div>
+      <div class="form-group"><label>Salida</label><input type="date" id="f-salida"></div>
+    </div>
+    <div class="form-group">
+      <label>Pago aseo Pamela ($)</label>
+      <input type="number" id="f-aseo" value="40000">
+    </div>
+    <div class="form-group">
+      <label>Valor total recibido ($)</label>
+      <input type="number" id="f-total" placeholder="500000">
+    </div>
+
+    <div class="calc-preview" id="calc-preview" style="display:none">
+      <div class="cp-row"><span>Noches</span><span class="val" id="cp-noches">—</span></div>
+      <div class="cp-row"><span>Precio por noche</span><span class="val" id="cp-pxnoche">—</span></div>
+      <div class="cp-row"><span>Pago aseo</span><span class="val" id="cp-aseo">—</span></div>
+      <div class="cp-row total"><span>Ganancia neta</span><span class="val" id="cp-ganancia">—</span></div>
+    </div>
+
+    <button class="btn-add" id="btn-add" onclick="addRecord()">＋ Agregar reserva</button>
+    <button class="btn-reload" onclick="loadFromSheets()">↺ Recargar desde Sheets</button>
+  </aside>
+
+  <!-- TABLE -->
+  <div class="table-area">
+    <div class="table-header">
+      <h2>Registros</h2>
+      <div class="filters">
+        <button class="filter-btn active" onclick="setFilter('todos',this)">Todos</button>
+        <button class="filter-btn" onclick="setFilter('airbnb',this)">Airbnb</button>
+        <button class="filter-btn" onclick="setFilter('familia',this)">Familia</button>
+        <button class="filter-btn" onclick="setFilter('referido',this)">Referido</button>
+        <button class="filter-btn" onclick="setFilter('nosotros',this)">Nosotros</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Huésped</th><th>Relación</th><th>Época</th>
+          <th>Entrada</th><th>Salida</th>
+          <th style="text-align:right">Noches</th>
+          <th style="text-align:right">Aseo</th>
+          <th style="text-align:right">Total recibido</th>
+          <th style="text-align:right">Ganancia</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr class="loading-row"><td colspan="9">Inicia sesión con Google para ver tus registros</td></tr>
+      </tbody>
+    </table>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="icon">🏡</div>
+      <p>No hay registros. ¡Agrega la primera reserva!</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────
+const CLIENT_ID     = '97612093731-gp7f0eo1ovj31v1vigs1clhgeg9odgr5.apps.googleusercontent.com';
+const SHEET_ID      = '1CjnONnddPX0y-jkLhq2rOY3lAuorOJYW';
+const SHEET_NAME    = 'registros';
+const SCOPES        = 'https://www.googleapis.com/auth/spreadsheets';
+// Columnas en el sheet (fila 2 = headers, datos desde fila 3)
+// A=Usuario B=relacion C=epoca D=Año E=Entrada F=Salida G=Noches H=Mes
+// I=Pago aseo J=Valor total K=precio por noche L=early M=late N=Ganancia
+// O=Cuotas P=cuotas pagadas Q=total recibido R=valor cuota 1 ... U=valor cuota 4
+
+let accessToken = null;
+let records = [];
+let activeFilter = 'todos';
+
+// ── AUTH ──────────────────────────────────────────────
+function signIn() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showToast('❌ Error al iniciar sesión'); return; }
+      accessToken = resp.access_token;
+      onSignedIn();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function onSignedIn() {
+  const banner = document.getElementById('auth-banner');
+  banner.className = 'auth-banner auth-ok';
+  banner.innerHTML = `
+    <p>✓ <strong>Conectado a Google Sheets.</strong> Los cambios se guardan directo en tu planilla.</p>
+    <button class="btn-logout" onclick="signOut()">Cerrar sesión</button>
+  `;
+  setSyncStatus('syncing', '⬤ Cargando...');
+  loadFromSheets();
+}
+
+function signOut() {
+  accessToken = null;
+  records = [];
+  render();
+  const banner = document.getElementById('auth-banner');
+  banner.className = 'auth-banner';
+  banner.innerHTML = `
+    <p><strong>Conecta tu Google Sheets</strong> para leer y guardar reservas directamente en tu planilla.</p>
+    <button class="btn-login" onclick="signIn()">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Iniciar sesión con Google
+    </button>
+  `;
+  setSyncStatus('offline', '⬤ Sin conectar');
+  document.getElementById('table-body').innerHTML = '<tr class="loading-row"><td colspan="9">Inicia sesión con Google para ver tus registros</td></tr>';
+  updateStats();
+}
+
+// ── SHEETS API ────────────────────────────────────────
+async function sheetsGet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) throw new Error('Error leyendo Sheets: ' + res.status);
+  return res.json();
+}
+
+async function sheetsAppend(values) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values })
+  });
+  if (!res.ok) throw new Error('Error escribiendo Sheets: ' + res.status);
+  return res.json();
+}
+
+async function loadFromSheets() {
+  if (!accessToken) return;
+  setSyncStatus('syncing', '⬤ Sincronizando...');
+  document.getElementById('table-body').innerHTML = '<tr class="loading-row"><td colspan="9">⏳ Cargando desde Google Sheets...</td></tr>';
+  try {
+    // Lee desde fila 3 (fila 1 tiene número, fila 2 headers)
+    const data = await sheetsGet(`${SHEET_NAME}!A3:U300`);
+    const rows = data.values || [];
+    records = rows
+      .filter(r => r[0] && r[0].trim() && r[4]) // tiene nombre y fecha entrada
+      .map((r, i) => ({
+        rowIndex: i + 3, // fila real en sheet (1-indexed, +2 por encabezados)
+        nombre:   r[0]  || '',
+        relacion: r[1]  || '',
+        epoca:    r[2]  || '',
+        año:      r[3]  || '',
+        entrada:  excelDateToISO(r[4]),
+        salida:   excelDateToISO(r[5]),
+        noches:   parseInt(r[6])  || 0,
+        mes:      parseInt(r[7])  || '',
+        aseo:     parseNum(r[8]),
+        total:    parseNum(r[9]),
+        ganancia: parseNum(r[13]),
+        totalRec: parseNum(r[16]),
+      }));
+    render();
+    setSyncStatus('synced', '✓ Sincronizado');
+    showToast(`✓ ${records.length} registros cargados desde Sheets`);
+  } catch(e) {
+    setSyncStatus('error', '✗ Error de conexión');
+    showToast('❌ No se pudo conectar con Google Sheets');
+    console.error(e);
+  }
+}
+
+function parseNum(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  return parseFloat(String(v).replace(/[.$,]/g,'').replace(',','.')) || 0;
+}
+
+function excelDateToISO(val) {
+  if (!val) return '';
+  // Si ya es formato fecha ISO o dd/mm/yyyy
+  if (String(val).includes('-')) return String(val).split('T')[0];
+  if (String(val).includes('/')) {
+    const parts = String(val).split('/');
+    if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+  }
+  // Número serial de Excel/Sheets
+  const n = parseInt(val);
+  if (!isNaN(n) && n > 40000) {
+    const d = new Date((n - 25569) * 86400 * 1000);
+    return d.toISOString().split('T')[0];
+  }
+  return String(val);
+}
+
+// ── ADD RECORD ────────────────────────────────────────
+async function addRecord() {
+  const nombre   = document.getElementById('f-nombre').value.trim();
+  const relacion = document.getElementById('f-relacion').value;
+  const epoca    = document.getElementById('f-epoca').value;
+  const entrada  = document.getElementById('f-entrada').value;
+  const salida   = document.getElementById('f-salida').value;
+  const aseo     = parseFloat(document.getElementById('f-aseo').value) || 0;
+  const total    = parseFloat(document.getElementById('f-total').value) || 0;
+
+  if (!nombre) { showToast('⚠️ Ingresa el nombre del huésped'); return; }
+  if (!entrada || !salida) { showToast('⚠️ Ingresa fechas de entrada y salida'); return; }
+  if (!total && relacion !== 'nosotros') { showToast('⚠️ Ingresa el valor total'); return; }
+
+  const d1 = new Date(entrada), d2 = new Date(salida);
+  const noches = Math.round((d2 - d1) / 86400000);
+  if (noches <= 0) { showToast('⚠️ La salida debe ser después de la entrada'); return; }
+
+  const año      = new Date(entrada).getFullYear();
+  const mes      = new Date(entrada).getMonth() + 1;
+  const ganancia = total - aseo;
+  const pxNoche  = noches > 0 ? Math.round(ganancia / noches) : 0;
+
+  // Formato de fecha para Sheets
+  const fmtSheetDate = d => {
+    const [y,m,day] = d.split('-');
+    return `${parseInt(day)}/${parseInt(m)}/${y}`;
+  };
+
+  // Columnas: A=Usuario B=relacion C=epoca D=Año E=Entrada F=Salida G=Noches H=Mes
+  // I=Pago aseo J=Valor total K=precio por noche L=early check-in M=late check-out
+  // N=Ganancia O=Cuotas P=cuotas pagadas Q=total recibido R=valor cuota1 S=cuota2 T=cuota3 U=cuota4
+  const newRow = [
+    nombre, relacion, epoca, año,
+    fmtSheetDate(entrada), fmtSheetDate(salida),
+    noches, mes, aseo, total, pxNoche, '', '',
+    ganancia, 1, 1, total, total, 0, 0, 0
+  ];
+
+  const btn = document.getElementById('btn-add');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  setSyncStatus('syncing', '⬤ Guardando...');
+
+  try {
+    if (accessToken) {
+      await sheetsAppend([newRow]);
+      setSyncStatus('synced', '✓ Guardado en Sheets');
+      showToast(`✓ ${nombre} guardado en Google Sheets — Ganancia: ${fmt(ganancia)}`);
+    } else {
+      showToast(`✓ ${nombre} agregado localmente (inicia sesión para sincronizar)`);
+    }
+
+    // Agrega localmente también para no recargar
+    records.push({
+      nombre, relacion, epoca, año, entrada, salida,
+      noches, mes, aseo, total, ganancia, totalRec: total
+    });
+
+    // Reset form
+    document.getElementById('f-nombre').value = '';
+    document.getElementById('f-entrada').value = '';
+    document.getElementById('f-salida').value = '';
+    document.getElementById('f-total').value = '';
+    document.getElementById('f-aseo').value = '40000';
+    document.getElementById('calc-preview').style.display = 'none';
+    render();
+  } catch(e) {
+    setSyncStatus('error', '✗ Error al guardar');
+    showToast('❌ No se pudo guardar en Sheets. Revisa tu conexión.');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '＋ Agregar reserva';
+}
+
+// ── RENDER ────────────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined || n === 0 && n !== 0) return '—';
+  return '$' + Number(n).toLocaleString('es-CL');
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const parts = String(d).split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
+  return d;
+}
+function relBadge(rel) {
+  const map = {
+    'airbnb':'badge-airbnb','airbnb adicional':'badge-airbnb',
+    'Booking':'badge-booking','directo post-airbnb':'badge-airbnb',
+    'familia_1':'badge-familia','familia_2':'badge-familia',
+    'amigo_1':'badge-amigo','amigo_2':'badge-amigo',
+    'referido':'badge-referido','nosotros':'badge-nosotros'
+  };
+  const cls = map[rel] || 'badge-nosotros';
+  const label = rel.replace('_1','').replace('_2','');
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function render() {
+  const tbody = document.getElementById('table-body');
+  const empty = document.getElementById('empty-state');
+
+  let filtered = records.filter(r => {
+    if (activeFilter === 'todos') return true;
+    if (activeFilter === 'familia') return r.relacion.startsWith('familia');
+    if (activeFilter === 'nosotros') return r.relacion === 'nosotros';
+    return r.relacion.toLowerCase().includes(activeFilter);
+  });
+
+  filtered = [...filtered].sort((a,b) => (b.entrada||'').localeCompare(a.entrada||''));
+
+  if (!filtered.length && accessToken) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+  } else if (!filtered.length) {
+    empty.style.display = 'none';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td><strong>${r.nombre}</strong></td>
+        <td>${relBadge(r.relacion)}</td>
+        <td><span class="epoca-badge">${r.epoca||'—'}</span></td>
+        <td class="mono">${fmtDate(r.entrada)}</td>
+        <td class="mono">${fmtDate(r.salida)}</td>
+        <td class="money">${r.noches}</td>
+        <td class="money">${r.aseo ? fmt(r.aseo) : '—'}</td>
+        <td class="money positive">${fmt(r.total)}</td>
+        <td class="money accent">${fmt(r.ganancia)}</td>
+      </tr>
+    `).join('');
+  }
+  updateStats();
+}
+
+function updateStats() {
+  const real = records.filter(r => r.relacion !== 'nosotros');
+  const totGanancia = real.reduce((s,r) => s + (r.ganancia||0), 0);
+  const totNoches   = records.reduce((s,r) => s + (r.noches||0), 0);
+  const millones = (totGanancia / 1000000).toFixed(1);
+  document.getElementById('hstat-total').textContent    = records.length ? '$' + millones + 'M' : '$—';
+  document.getElementById('hstat-noches').textContent   = records.length ? totNoches : '—';
+  document.getElementById('hstat-reservas').textContent = records.length ? records.length : '—';
+}
+
+function setSyncStatus(type, text) {
+  const el = document.getElementById('sync-status');
+  el.className = `sync-status ${type}`;
+  el.textContent = text;
+}
+
+// ── LIVE PREVIEW ──────────────────────────────────────
+function updatePreview() {
+  const entrada = document.getElementById('f-entrada').value;
+  const salida  = document.getElementById('f-salida').value;
+  const aseo    = parseFloat(document.getElementById('f-aseo').value) || 0;
+  const total   = parseFloat(document.getElementById('f-total').value) || 0;
+  const preview = document.getElementById('calc-preview');
+  if (!entrada || !salida || !total) { preview.style.display = 'none'; return; }
+  const noches = Math.round((new Date(salida) - new Date(entrada)) / 86400000);
+  if (noches <= 0) { preview.style.display = 'none'; return; }
+  const ganancia = total - aseo;
+  preview.style.display = 'block';
+  document.getElementById('cp-noches').textContent  = noches + ' noches';
+  document.getElementById('cp-aseo').textContent    = fmt(aseo);
+  document.getElementById('cp-pxnoche').textContent = fmt(Math.round(ganancia/noches)) + '/noche';
+  document.getElementById('cp-ganancia').textContent= fmt(ganancia);
+}
+['f-entrada','f-salida','f-aseo','f-total'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updatePreview)
+);
+
+// ── FILTER ────────────────────────────────────────────
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
