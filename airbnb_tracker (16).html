@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depto Airbnb — Registros</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f5f0e8;--surface:#faf7f2;--card:#fff;--accent:#c8472a;--accent2:#2a6e3f;--text:#1a1410;--muted:#7a6f63;--border:#e0d9cf;--tag-bg:#f0ebe2;--gold:#c9922a;--blue:#1e4e8c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+header{background:var(--text);color:#f5f0e8;padding:20px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+header h1{font-family:'DM Serif Display',serif;font-size:1.8rem;line-height:1}
+header h1 span{color:var(--accent)}
+.subtitle{font-family:'DM Mono',monospace;font-size:.66rem;color:#a09890;margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+.header-right{display:flex;gap:22px;align-items:center}
+.hstat{text-align:right}
+.hstat .val{font-family:'DM Serif Display',serif;font-size:1.3rem;color:#f5f0e8}
+.hstat .lbl{font-family:'DM Mono',monospace;font-size:.58rem;color:#a09890;text-transform:uppercase;letter-spacing:1px}
+.sync-status{font-family:'DM Mono',monospace;font-size:.66rem;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.sync-status.syncing{background:#fff3cd;color:#856404}
+.sync-status.synced{background:#d1edda;color:#155724}
+.sync-status.error{background:#f8d7da;color:#721c24}
+.sync-status.offline{background:#e2e3e5;color:#383d41}
+
+/* NAV */
+.nav-tabs{background:var(--surface);border-bottom:1.5px solid var(--border);display:flex;padding:0 40px;overflow-x:auto}
+.nav-tab{padding:10px 18px;font-family:'DM Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;color:var(--muted);border:none;border-bottom:2.5px solid transparent;background:none;transition:all .2s;white-space:nowrap}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-tab:hover:not(.active){color:var(--text)}
+
+/* AUTH */
+.auth-banner{background:#fff8e1;border-bottom:2px solid #f0c040;padding:10px 40px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.auth-banner p{font-size:.82rem;color:#7a5c00}
+.auth-ok{background:#e8f5e9;border-color:#81c784}
+.auth-ok p{color:#1b5e20}
+.btn-login{padding:7px 14px;background:#4285f4;color:#fff;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .2s;white-space:nowrap}
+.btn-login:hover{background:#2a6dd9}
+.btn-logout{padding:5px 12px;background:transparent;color:#7a5c00;border:1.5px solid #f0c040;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer}
+
+/* VIEWS */
+.view{display:none}
+.view.active{display:flex}
+
+/* SHARED COMPONENTS */
+.page-content{flex-direction:column;overflow-y:auto;padding:26px 36px;gap:22px;height:calc(100vh - 154px)}
+.kpi-grid{display:grid;gap:14px}
+.kpi-grid.cols4{grid-template-columns:repeat(4,1fr)}
+.kpi-grid.cols3{grid-template-columns:repeat(3,1fr)}
+.kpi-grid.cols2{grid-template-columns:repeat(2,1fr)}
+.stat-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
+.stat-card.green::before{background:var(--accent2)}
+.stat-card.gold::before{background:var(--gold)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.red::before{background:#c8472a}
+.sc-lbl{font-family:'DM Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:7px}
+.sc-val{font-family:'DM Serif Display',serif;font-size:1.75rem;color:var(--text);line-height:1}
+.sc-sub{font-size:.73rem;color:var(--muted);margin-top:5px}
+.sc-val.neg{color:var(--accent)}
+.sc-val.pos{color:var(--accent2)}
+
+.panel{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:22px}
+.panel h3{font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:4px}
+.panel-sub{font-family:'DM Mono',monospace;font-size:.61rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:16px}
+.chart-wrap{position:relative;height:210px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse}
+.data-table thead tr{background:var(--text);color:var(--bg)}
+.data-table thead th{padding:8px 11px;font-family:'DM Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:.7px;text-align:left;font-weight:500;white-space:nowrap}
+.data-table tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+.data-table tbody tr:hover{background:var(--tag-bg)}
+.data-table tbody td{padding:8px 11px;font-size:.8rem;vertical-align:middle}
+.num{font-family:'DM Mono',monospace;text-align:right;white-space:nowrap}
+.num.pos{color:var(--accent2);font-weight:600}
+.num.neg{color:var(--accent);font-weight:600}
+.num.muted{color:var(--muted)}
+.bar-inline{display:inline-block;height:6px;border-radius:3px;background:var(--accent2);margin-left:8px;vertical-align:middle}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.ba{background:#ffe0da;color:#c8472a}.bf{background:#daeadf;color:#2a6e3f}
+.bam{background:#dde8f5;color:#1e4e8c}.br{background:#f5e8dd;color:#8c4e1e}
+.bn{background:#e8e8e8;color:#555}.bb{background:#cce0ff;color:#003580}
+.epoca-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.62rem;font-family:'DM Mono',monospace;background:var(--tag-bg);color:var(--muted);white-space:nowrap}
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:500;white-space:nowrap}
+.cat-dividendo{background:#fce8e8;color:#8b1a1a}
+.cat-gastos_comunes{background:#e8f0fe;color:#1a47a3}
+.cat-servicios{background:#e8f5e9;color:#1b5e20}
+.cat-mejoras{background:#fff3e0;color:#8b5000}
+.cat-aseo{background:#f3e5f5;color:#6a1b9a}
+.cat-contribuciones{background:#e8f4fd;color:#01579b}
+.cat-otros{background:#e2e3e5;color:#383d41}
+
+/* REGISTROS SIDEBAR */
+#view-registros{height:calc(100vh - 154px)}
+.sidebar{width:300px;min-width:260px;background:var(--surface);border-right:1.5px solid var(--border);overflow-y:auto;padding:20px 16px;flex-shrink:0}
+.sidebar h2{font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sidebar h2::after{content:'';flex:1;height:1px;background:var(--border)}
+.form-group{margin-bottom:10px}
+label{display:block;font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:3px}
+input,select{width:100%;padding:7px 9px;background:var(--card);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--text);outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.calc-preview{background:var(--tag-bg);border:1.5px dashed var(--border);border-radius:8px;padding:9px 11px;margin-bottom:11px}
+.cp-row{display:flex;justify-content:space-between;font-size:.76rem;color:var(--muted);margin-bottom:3px}
+.cp-row.total{border-top:1px solid var(--border);padding-top:6px;margin-top:3px;font-weight:600;color:var(--text);font-size:.86rem}
+.cp-row .val{font-family:'DM Mono',monospace;color:var(--accent2);font-weight:500}
+.cp-row.total .val{color:var(--accent)}
+.btn-primary{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:#a33820;transform:translateY(-1px)}
+.btn-primary:disabled{background:#ccc;cursor:not-allowed;transform:none}
+.btn-secondary{width:100%;margin-top:7px;padding:8px;background:transparent;color:var(--accent2);border:1.5px solid var(--accent2);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-secondary:hover{background:var(--accent2);color:#fff}
+
+.table-area{flex:1;overflow-y:auto;padding:20px 24px}
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;gap:10px;flex-wrap:wrap}
+.table-header h2{font-family:'DM Serif Display',serif;font-size:1.05rem}
+.filters{display:flex;gap:5px;flex-wrap:wrap}
+.filter-btn{padding:3px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:.69rem;font-family:'DM Mono',monospace;cursor:pointer;color:var(--muted);transition:all .15s}
+.filter-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.loading-row td{text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:.76rem}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .icon{font-size:2.2rem;margin-bottom:8px}
+.empty-state p{font-family:'DM Mono',monospace;font-size:.76rem}
+
+/* GASTOS SIDEBAR */
+#view-gastos{height:calc(100vh - 154px)}
+.gasto-cat-selector{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.cat-btn{padding:3px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:.65rem;font-family:'DM Mono',monospace;cursor:pointer;color:var(--muted);transition:all .15s}
+.cat-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* CALENDARIO */
+#view-calendar{height:calc(100vh - 154px);flex-direction:column;overflow-y:auto;padding:22px 32px;gap:16px}
+.cal-nav{display:flex;align-items:center;gap:14px}
+.cal-nav h2{font-family:'DM Serif Display',serif;font-size:1.2rem;min-width:190px;text-align:center}
+.cal-nav-btn{padding:5px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Mono',monospace;font-size:.74rem;cursor:pointer;transition:all .15s;color:var(--text)}
+.cal-nav-btn:hover{background:var(--text);color:var(--bg)}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)}
+.leg-dot{width:10px;height:10px;border-radius:3px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{text-align:center;font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:3px 0}
+.cal-day{min-height:68px;background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:5px;position:relative}
+.cal-day.empty{background:transparent;border-color:transparent}
+.cal-day.today{border-color:var(--accent);border-width:2px}
+.cal-day.past{opacity:.55}
+.cal-day-num{font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500;color:var(--muted);margin-bottom:2px}
+.cal-day.today .cal-day-num{color:var(--accent);font-weight:700}
+.cal-event{font-size:.59rem;border-radius:3px;padding:1px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.ev-airbnb{background:#ffe0da;color:#a33820}
+.ev-familia{background:#daeadf;color:#1a5e30}
+.ev-amigo{background:#dde8f5;color:#1e4e8c}
+.ev-referido{background:#f5e8dd;color:#8c4e1e}
+.ev-nosotros{background:#e8e8e8;color:#444}
+.ev-booking{background:#cce0ff;color:#003580}
+.cal-day.occupied{background:#fef8f6}
+.cal-day.nosotros-day{background:#f5f5f5}
+
+/* NOSOTROS */
+#view-nosotros .page-content{height:calc(100vh - 154px)}
+.nos-chip{display:inline-block;padding:2px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:.63rem;background:var(--tag-bg);color:var(--muted)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:.81rem;transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;border-left:4px solid var(--accent);max-width:290px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* YEAR SELECTOR */
+.month-selector{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.yr-btn{padding:3px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:.69rem;font-family:'DM Mono',monospace;cursor:pointer;color:var(--muted);transition:all .15s}
+.yr-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* BALANCE MONTH PILL */
+.month-pill{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);margin-bottom:6px}
+.month-pill .mp-label{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--text);font-weight:500}
+.month-pill .mp-vals{display:flex;gap:16px}
+.month-pill .mp-val{font-family:'DM Mono',monospace;font-size:.72rem}
+.month-pill .mp-net.pos{color:var(--accent2);font-weight:700}
+.month-pill .mp-net.neg{color:var(--accent);font-weight:700}
+
+@media(max-width:900px){
+  #view-registros,#view-gastos{flex-direction:column;height:auto}
+  .sidebar{width:100%;border-right:none;border-bottom:1.5px solid var(--border)}
+  .header-right{display:none}
+  header,.auth-banner{padding:12px 16px}
+  .table-area,.page-content,#view-calendar{padding:12px}
+  .nav-tabs{padding:0 8px}
+  .kpi-grid.cols4,.kpi-grid.cols3{grid-template-columns:1fr 1fr}
+  .charts-row{grid-template-columns:1fr}
+  .cal-day{min-height:50px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Depto <span>Airbnb</span></h1>
+    <div class="subtitle">Panel de gestión</div>
+  </div>
+  <div class="header-right">
+    <div class="hstat"><div class="val" id="hstat-ingresos">$—</div><div class="lbl">Ingresos netos</div></div>
+    <div class="hstat"><div class="val" id="hstat-gastos">$—</div><div class="lbl">Gastos totales</div></div>
+    <div class="hstat"><div class="val" id="hstat-neto">$—</div><div class="lbl">Balance real</div></div>
+    <span class="sync-status offline" id="sync-status">⬤ Sin conectar</span>
+  </div>
+</header>
+
+<div class="auth-banner" id="auth-banner">
+  <p><strong>Conecta tu Google Sheets</strong> para sincronizar reservas y gastos.</p>
+  <button class="btn-login" onclick="signIn()">
+    <svg width="15" height="15" viewBox="0 0 24 24"><path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Iniciar sesión con Google
+  </button>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchView('registros',this)">📋 Reservas</button>
+  <button class="nav-tab" onclick="switchView('gastos',this)">💸 Gastos</button>
+  <button class="nav-tab" onclick="switchView('balance',this)">⚖️ Balance</button>
+  <button class="nav-tab" onclick="switchView('stats',this)">📊 Estadísticas</button>
+  <button class="nav-tab" onclick="switchView('nosotros',this)">🏠 Nosotros</button>
+  <button class="nav-tab" onclick="switchView('calendar',this)">📅 Calendario</button>
+</div>
+
+<!-- ══ RESERVAS ══ -->
+<div class="view active" id="view-registros">
+  <aside class="sidebar">
+    <h2>Nueva reserva</h2>
+    <div class="form-group"><label>Nombre huésped</label><input type="text" id="f-nombre" placeholder="Ej: Ana Pascual"></div>
+    <div class="form-group"><label>Relación</label>
+      <select id="f-relacion">
+        <option value="airbnb">Airbnb</option><option value="airbnb adicional">Airbnb adicional</option>
+        <option value="Booking">Booking</option><option value="directo post-airbnb">Directo post-Airbnb</option>
+        <option value="familia_1">Familia 1</option><option value="familia_2">Familia 2</option>
+        <option value="amigo_1">Amigo 1</option><option value="amigo_2">Amigo 2</option>
+        <option value="referido">Referido</option><option value="nosotros">Nosotros</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Época</label>
+      <select id="f-epoca">
+        <option value="temp. alta">Temporada alta</option><option value="verano">Verano</option>
+        <option value="v.invierno">Vacaciones invierno</option><option value="feriado">Feriado</option>
+        <option value="finde">Fin de semana</option><option value="temp. baja">Temp. baja</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="form-group"><label>Entrada</label><input type="date" id="f-entrada"></div>
+      <div class="form-group"><label>Salida</label><input type="date" id="f-salida"></div>
+    </div>
+    <div class="form-group"><label>Pago aseo Pamela ($)</label><input type="number" id="f-aseo" value="40000"></div>
+    <div class="form-group"><label>Valor total recibido ($)</label><input type="number" id="f-total" placeholder="500000"></div>
+    <div class="calc-preview" id="calc-preview" style="display:none">
+      <div class="cp-row"><span>Noches</span><span class="val" id="cp-noches">—</span></div>
+      <div class="cp-row"><span>Precio/noche</span><span class="val" id="cp-pxnoche">—</span></div>
+      <div class="cp-row"><span>Aseo Pamela</span><span class="val" id="cp-aseo">—</span></div>
+      <div class="cp-row total"><span>Ganancia neta</span><span class="val" id="cp-ganancia">—</span></div>
+    </div>
+    <button class="btn-primary" id="btn-add" onclick="addRecord()">＋ Agregar reserva</button>
+    <button class="btn-secondary" onclick="loadAll()">↺ Recargar datos</button>
+  </aside>
+  <div class="table-area">
+    <div class="table-header">
+      <h2>Historial de reservas</h2>
+      <div class="filters">
+        <button class="filter-btn active" onclick="setFilter('todos',this)">Todos</button>
+        <button class="filter-btn" onclick="setFilter('airbnb',this)">Airbnb</button>
+        <button class="filter-btn" onclick="setFilter('Booking',this)">Booking</button>
+        <button class="filter-btn" onclick="setFilter('familia_1',this)">Familia 1</button>
+        <button class="filter-btn" onclick="setFilter('familia_2',this)">Familia 2</button>
+        <button class="filter-btn" onclick="setFilter('amigo_1',this)">Amigo 1</button>
+        <button class="filter-btn" onclick="setFilter('amigo_2',this)">Amigo 2</button>
+        <button class="filter-btn" onclick="setFilter('referido',this)">Referido</button>
+        <button class="filter-btn" onclick="setFilter('nosotros',this)">Nosotros</button>
+      </div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Huésped</th><th>Relación</th><th>Época</th><th>Entrada</th><th>Salida</th><th class="num">Noches</th><th class="num">Aseo</th><th class="num">Total</th><th class="num">Ganancia</th><th class="num">$/noche</th><th></th></tr></thead>
+      <tbody id="table-body"><tr class="loading-row"><td colspan="9">Inicia sesión con Google para ver tus registros</td></tr></tbody>
+    </table>
+    <div class="empty-state" id="empty-state" style="display:none"><div class="icon">🏡</div><p>No hay registros.</p></div>
+  </div>
+</div>
+
+<!-- ══ GASTOS ══ -->
+<div class="view" id="view-gastos">
+  <aside class="sidebar">
+    <h2>Nuevo gasto</h2>
+    <div class="form-group"><label>Descripción</label><input type="text" id="g-desc" placeholder="Ej: Dividendo enero"></div>
+    <div class="form-group"><label>Categoría</label>
+      <select id="g-cat">
+        <option value="dividendo">🏦 Dividendo</option>
+        <option value="gastos_comunes">🏢 Gastos comunes</option>
+        <option value="servicios">💡 Servicios (luz/agua/gas/internet)</option>
+        <option value="mejoras">🔧 Mejoras y arreglos</option>
+        <option value="aseo">🧹 Aseo / limpieza</option>
+        <option value="contribuciones">🏛️ Contribuciones</option>
+        <option value="otros">📦 Otros</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Fecha</label><input type="date" id="g-fecha"></div>
+    <div class="form-group"><label>Monto ($)</label><input type="number" id="g-monto" placeholder="50000"></div>
+    <div class="form-group"><label>Medio de pago</label>
+      <select id="g-medio">
+        <option value="CMR">💳 CMR</option>
+        <option value="Itau">🏦 Itaú</option>
+        <option value="Tenpo">📱 Tenpo</option>
+        <option value="Bci">🏦 BCI</option>
+        <option value="Banco Chile">🏦 Banco Chile</option>
+        <option value="Efectivo">💵 Efectivo</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="btn-gasto" onclick="addGasto()">＋ Agregar gasto</button>
+    <button class="btn-secondary" onclick="loadAll()">↺ Recargar datos</button>
+
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+      <div class="sc-lbl" style="margin-bottom:10px">Gastos por categoría</div>
+      <div id="gasto-cat-resumen"></div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div class="sc-lbl" style="margin-bottom:10px">Por medio de pago</div>
+      <div id="gasto-medio-resumen"></div>
+    </div>
+  </aside>
+  <div class="table-area">
+    <div class="table-header">
+      <h2>Historial de gastos</h2>
+      <div class="filters" id="gasto-filters">
+        <button class="filter-btn active" onclick="setGastoFilter('todos',this)">Todos</button>
+        <button class="filter-btn" onclick="setGastoFilter('dividendo',this)">Dividendo</button>
+        <button class="filter-btn" onclick="setGastoFilter('gastos_comunes',this)">G. Comunes</button>
+        <button class="filter-btn" onclick="setGastoFilter('servicios',this)">Servicios</button>
+        <button class="filter-btn" onclick="setGastoFilter('mejoras',this)">Mejoras</button>
+        <button class="filter-btn" onclick="setGastoFilter('aseo',this)">Aseo</button>
+        <button class="filter-btn" onclick="setGastoFilter('contribuciones',this)">Contribuciones</button>
+      </div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Descripción</th><th>Categoría</th><th>Medio de pago</th><th>Fecha</th><th class="num">Monto</th></tr></thead>
+      <tbody id="gasto-body"><tr class="loading-row"><td colspan="4">Inicia sesión para ver gastos</td></tr></tbody>
+    </table>
+    <div class="empty-state" id="gasto-empty" style="display:none"><div class="icon">💸</div><p>No hay gastos registrados.</p></div>
+  </div>
+</div>
+
+<!-- ══ BALANCE ══ -->
+<div class="view page-content" id="view-balance">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:-10px">
+    <button onclick="toggleNums('balance')" id="toggle-bal" class="filter-btn active" style="font-size:.68rem">👁 Ocultar números</button>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button onclick="toggleNumbers('balance')" id="toggle-balance" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-family:'DM Mono',monospace;font-size:.68rem;cursor:pointer;color:var(--muted)">👁 Ocultar cifras</button>
+  </div>
+  <div class="kpi-grid cols4">
+    <div class="stat-card green"><div class="sc-lbl">Ingresos totales</div><div class="sc-val pos" id="bal-ingresos">$—</div><div class="sc-sub" id="bal-ing-sub">—</div></div>
+    <div class="stat-card red"><div class="sc-lbl">Gastos totales</div><div class="sc-val neg" id="bal-gastos">$—</div><div class="sc-sub" id="bal-gas-sub">—</div></div>
+    <div class="stat-card gold"><div class="sc-lbl">Balance neto real</div><div class="sc-val" id="bal-neto">$—</div><div class="sc-sub">ingresos − gastos</div></div>
+    <div class="stat-card blue"><div class="sc-lbl">Ocupación promedio</div><div class="sc-val" id="bal-ocup">—%</div><div class="sc-sub">días arrendados / disponibles</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="panel">
+      <h3>Balance mensual</h3>
+      <div class="panel-sub">Ingresos vs gastos por mes</div>
+      <div style="margin-bottom:10px" id="bal-year-sel"></div>
+      <div class="chart-wrap"><canvas id="chart-balance"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Distribución de gastos</h3>
+      <div class="panel-sub">Por categoría — histórico</div>
+      <div class="chart-wrap"><canvas id="chart-gastos-cat"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Balance por mes</h3>
+    <div class="panel-sub">Detalle mes a mes</div>
+    <div id="balance-months"></div>
+  </div>
+</div>
+
+<!-- ══ ESTADÍSTICAS ══ -->
+<div class="view page-content" id="view-stats">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:-10px">
+    <button onclick="toggleNums('stats')" id="toggle-stats" class="filter-btn active" style="font-size:.68rem">👁 Ocultar números</button>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button onclick="toggleNumbers('stats')" id="toggle-stats" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-family:'DM Mono',monospace;font-size:.68rem;cursor:pointer;color:var(--muted)">👁 Ocultar cifras</button>
+  </div>
+  <div class="kpi-grid cols4">
+    <div class="stat-card"><div class="sc-lbl">Ganancia histórica</div><div class="sc-val" id="sc-total">$—</div><div class="sc-sub" id="sc-total-sub">—</div></div>
+    <div class="stat-card green"><div class="sc-lbl">Mejor año</div><div class="sc-val" id="sc-mejor-año">—</div><div class="sc-sub" id="sc-mejor-año-sub">—</div></div>
+    <div class="stat-card gold"><div class="sc-lbl">Promedio por noche</div><div class="sc-val" id="sc-pxn">$—</div><div class="sc-sub">sobre reservas reales</div></div>
+    <div class="stat-card blue"><div class="sc-lbl">Noches arrendadas</div><div class="sc-val" id="sc-noches">—</div><div class="sc-sub">excluyendo uso propio</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="panel">
+      <h3>Ganancia por año</h3>
+      <div class="panel-sub">Comparativo anual — hover para ver variación vs año anterior</div>
+      <div class="chart-wrap"><canvas id="chart-años"></canvas></div>
+      <div id="year-pct-row" style="display:flex;margin-top:6px;padding:0 8px"></div>
+    </div>
+    <div class="panel" style="overflow:hidden">
+      <h3>Comparativo mensual</h3>
+      <div class="panel-sub"><div class="month-selector" id="year-selector"></div></div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chart-meses"></canvas></div>
+      <div id="month-diff-table"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Acumulado anual mes a mes</h3>
+    <div class="panel-sub">Curva de ingresos acumulados — comparativo entre años</div>
+    <div class="month-selector" id="cum-year-selector" style="margin-bottom:10px"></div>
+    <div class="chart-wrap" style="height:220px"><canvas id="chart-acumulado"></canvas></div>
+    <div id="cum-diff-table"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Detalle por año</h3>
+    <div class="panel-sub">Ganancia, noches y promedio</div>
+    <table class="data-table">
+      <thead><tr><th>Año</th><th class="num">Reservas</th><th class="num">Noches</th><th class="num">Total recibido</th><th class="num">Ganancia neta</th><th class="num">Prom/noche</th><th>Distribución</th></tr></thead>
+      <tbody id="year-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ NOSOTROS ══ -->
+<div class="view" id="view-nosotros">
+  <div class="page-content" style="height:calc(100vh - 154px)">
+    <div class="kpi-grid cols3">
+      <div class="stat-card"><div class="sc-lbl">Total visitas</div><div class="sc-val" id="nos-total">—</div><div class="sc-sub">veces que hemos ido</div></div>
+      <div class="stat-card green"><div class="sc-lbl">Total noches</div><div class="sc-val" id="nos-noches">—</div><div class="sc-sub">noches en el depto</div></div>
+      <div class="stat-card gold"><div class="sc-lbl">Última visita</div><div class="sc-val" id="nos-ultima" style="font-size:1.1rem">—</div><div class="sc-sub" id="nos-ultima-sub">—</div></div>
+    </div>
+    <div class="panel">
+      <h3>Historial de visitas 🏠</h3>
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Época</th><th>Entrada</th><th>Salida</th><th class="num">Noches</th><th>Año</th></tr></thead>
+        <tbody id="nos-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CALENDARIO ══ -->
+<div class="view" id="view-calendar">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">← Anterior</button>
+      <h2 id="cal-title">—</h2>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">Siguiente →</button>
+    </div>
+    <div class="cal-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#ffe0da"></div>Airbnb/Booking</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#daeadf"></div>Familia</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#dde8f5"></div>Amigo</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f5e8dd"></div>Referido</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#e8e8e8"></div>Nosotros</div>
+    </div>
+  </div>
+  <div class="cal-grid" id="cal-grid">
+    <div class="cal-dow">Lun</div><div class="cal-dow">Mar</div><div class="cal-dow">Mié</div>
+    <div class="cal-dow">Jue</div><div class="cal-dow">Vie</div><div class="cal-dow">Sáb</div><div class="cal-dow">Dom</div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL EDITAR ══ -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:#0008;z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:14px;padding:28px;width:420px;max-width:95vw;box-shadow:0 20px 60px #0004">
+    <h3 style="font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:18px">Editar reserva</h3>
+    <div class="form-group"><label>Nombre huésped</label><input type="text" id="e-nombre"></div>
+    <div class="form-group"><label>Relación</label>
+      <select id="e-relacion">
+        <option value="airbnb">Airbnb</option><option value="airbnb adicional">Airbnb adicional</option>
+        <option value="Booking">Booking</option><option value="directo post-airbnb">Directo post-Airbnb</option>
+        <option value="familia_1">Familia 1</option><option value="familia_2">Familia 2</option>
+        <option value="amigo_1">Amigo 1</option><option value="amigo_2">Amigo 2</option>
+        <option value="referido">Referido</option><option value="nosotros">Nosotros</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Época</label>
+      <select id="e-epoca">
+        <option value="temp. alta">Temporada alta</option><option value="verano">Verano</option>
+        <option value="v.invierno">Vacaciones invierno</option><option value="feriado">Feriado</option>
+        <option value="finde">Fin de semana</option><option value="temp. baja">Temp. baja</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="form-group"><label>Entrada</label><input type="date" id="e-entrada"></div>
+      <div class="form-group"><label>Salida</label><input type="date" id="e-salida"></div>
+    </div>
+    <div class="row2">
+      <div class="form-group"><label>Aseo Pamela ($)</label><input type="number" id="e-aseo"></div>
+      <div class="form-group"><label>Total recibido ($)</label><input type="number" id="e-total"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button onclick="closeModal()" style="flex:1;padding:10px;background:var(--tag-bg);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.88rem">Cancelar</button>
+      <button onclick="deleteRecordModal()" style="flex:1;padding:10px;background:#fff0f0;border:1.5px solid var(--accent);color:var(--accent);border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600">🗑 Eliminar</button>
+      <button onclick="saveRecord()" style="flex:2;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600">Guardar cambios</button>
+    </div>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:10px;font-family:'DM Mono',monospace">⚠️ Los cambios solo se reflejan localmente. Para actualizar Google Sheets, edita directamente en la planilla.</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const CLIENT_ID  = '97612093731-gp7f0eo1ovj31v1vigs1clhgeg9odgr5.apps.googleusercontent.com';
+const SHEET_ID   = '15lMcDtxjjD_tlECT-XA8821sRIDNDAKbmLxMZnwjq3c';
+const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_SHORT= ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const CAT_LABELS = {dividendo:'Dividendo',gastos_comunes:'G. Comunes',servicios:'Servicios',mejoras:'Mejoras',aseo:'Aseo',contribuciones:'Contribuciones',otros:'Otros'};
+const CAT_COLORS = {dividendo:'#fce8e8',gastos_comunes:'#e8f0fe',servicios:'#e8f5e9',mejoras:'#fff3e0',aseo:'#f3e5f5',contribuciones:'#e8f4fd',otros:'#e2e3e5'};
+const CAT_BORDER = {dividendo:'#c62828',gastos_comunes:'#1565c0',servicios:'#2e7d32',mejoras:'#e65100',aseo:'#6a1b9a',contribuciones:'#0277bd',otros:'#546e7a'};
+
+let accessToken=null, records=[], gastos=[], activeFilter='todos', gastoFilter='todos';
+let chartAños=null, chartMeses=null, chartBalance=null, chartGastosCat=null, chartAcumulado=null;
+let selectedYears=[], balSelectedYear=null, cumSelectedYears=[];
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+
+// ── PARSE ─────────────────────────────────────────────
+function parseNum(v){
+  if(v===undefined||v===null||v==='') return 0;
+  return parseFloat(String(v).replace(/[^0-9.\-]/g,''))||0;
+}
+function excelDateToISO(val){
+  if(!val) return '';
+  const s=String(val).trim();
+  // Already ISO yyyy-mm-dd
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Has separators
+  const sep=s.includes('/')?'/':s.includes('-')?'-':null;
+  if(sep){
+    const parts=s.split(sep);
+    if(parts.length===3){
+      const a=parts[0].trim(), b=parts[1].trim(), c=parts[2].trim();
+      // yyyy-mm-dd or yyyy/mm/dd (first part is 4-digit year)
+      if(a.length===4&&parseInt(a)>1900){
+        return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
+      }
+      // dd/mm/yyyy or dd-mm-yyyy (last part is 4-digit year)
+      if(c.length===4&&parseInt(c)>1900){
+        return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+      }
+      // dd/mm/yy (2-digit year, assume 20xx)
+      if(c.length<=2){
+        const yr='20'+c.padStart(2,'0');
+        return `${yr}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+      }
+    }
+  }
+  // Excel serial number
+  const n=parseInt(s);
+  if(!isNaN(n)&&n>40000){
+    const d=new Date(Math.round((n-25569)*86400000));
+    const yr=d.getUTCFullYear(), mo=String(d.getUTCMonth()+1).padStart(2,'0'), dy=String(d.getUTCDate()).padStart(2,'0');
+    return `${yr}-${mo}-${dy}`;
+  }
+  return '';
+}
+
+// ── FORMAT ────────────────────────────────────────────
+function fmt(n){if(!n&&n!==0)return'—';return'$'+Math.round(n).toLocaleString('es-CL')}
+function fmtM(n){if(n>=1000000)return'$'+(n/1000000).toFixed(1)+'M';return'$'+(n/1000).toFixed(0)+'K'}
+function fmtDate(d){if(!d)return'—';const p=String(d).split('-');if(p.length===3)return`${p[2]}/${p[1]}/${p[0].slice(2)}`;return d}
+function relBadge(rel){
+  const m={'airbnb':'ba','airbnb adicional':'ba','Booking':'bb','directo post-airbnb':'ba','familia_1':'bf','familia_2':'bf','amigo_1':'bam','amigo_2':'bam','referido':'br','nosotros':'bn'};
+  return`<span class="badge ${m[rel]||'bn'}">${rel.replace('_1','').replace('_2','')}</span>`;
+}
+function catBadge(cat){return`<span class="badge cat-badge cat-${cat}">${CAT_LABELS[cat]||cat}</span>`}
+function evClass(rel){
+  if(rel==='nosotros')return'ev-nosotros';if(rel.startsWith('familia'))return'ev-familia';
+  if(rel.startsWith('amigo'))return'ev-amigo';if(rel==='referido')return'ev-referido';
+  if(rel==='Booking')return'ev-booking';return'ev-airbnb';
+}
+
+// ── VIEW ──────────────────────────────────────────────
+function switchView(name,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='stats') renderStats();
+  if(name==='nosotros') renderNosotros();
+  if(name==='calendar') renderCalendar();
+  if(name==='balance') renderBalance();
+  if(name==='gastos') renderGastos();
+}
+
+// ── AUTH ──────────────────────────────────────────────
+const GSVG=`<svg width="15" height="15" viewBox="0 0 24 24"><path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`;
+function signIn(){
+  const client=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,prompt:'consent',
+    callback:(resp)=>{if(resp.error){showToast('❌ Error: '+resp.error);return;}accessToken=resp.access_token;onSignedIn();}
+  });
+  client.requestAccessToken({prompt:'consent'});
+}
+function onSignedIn(){
+  const b=document.getElementById('auth-banner');
+  b.className='auth-banner auth-ok';
+  b.innerHTML=`<p>✓ <strong>Conectado a Google Sheets.</strong> Reservas y gastos sincronizados.</p><button class="btn-logout" onclick="signOut()">Cerrar sesión</button>`;
+  setSyncStatus('syncing','⬤ Cargando...');
+  loadAll();
+}
+function signOut(){
+  accessToken=null;records=[];gastos=[];
+  render();renderGastos();
+  document.getElementById('auth-banner').className='auth-banner';
+  document.getElementById('auth-banner').innerHTML=`<p><strong>Conecta tu Google Sheets</strong> para sincronizar reservas y gastos.</p><button class="btn-login" onclick="signIn()">${GSVG}Iniciar sesión con Google</button>`;
+  setSyncStatus('offline','⬤ Sin conectar');
+  document.getElementById('table-body').innerHTML='<tr class="loading-row"><td colspan="9">Inicia sesión para ver registros</td></tr>';
+  document.getElementById('gasto-body').innerHTML='<tr class="loading-row"><td colspan="4">Inicia sesión para ver gastos</td></tr>';
+  updateHeaderStats();
+}
+function setSyncStatus(t,txt){const el=document.getElementById('sync-status');el.className=`sync-status ${t}`;el.textContent=txt;}
+
+// ── SHEETS API ────────────────────────────────────────
+async function sheetsGet(range){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`;
+  const res=await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`}});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(JSON.stringify(e));}
+  return res.json();
+}
+async function sheetsAppend(sheet,values){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheet)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const res=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({values})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(JSON.stringify(e));}
+  return res.json();
+}
+
+// Update specific row in Sheets (columns A-N = 14 cols)
+async function sheetsUpdateRow(rowIndex, values){
+  const range = `registros!A${rowIndex}:N${rowIndex}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+  const res = await fetch(url, {
+    method:'PUT',
+    headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},
+    body: JSON.stringify({values:[values]})
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(JSON.stringify(e));}
+  return res.json();
+}
+
+async function loadAll(){
+  if(!accessToken) return;
+  setSyncStatus('syncing','⬤ Sincronizando...');
+  try{
+    const[resR,resG]=await Promise.all([sheetsGet('registros!A3:U500'),sheetsGet('gastos!A2:D500')]);
+    const rows=resR.values||[];
+    records=rows.filter(r=>r[0]&&r[0].trim()&&r[4]).map((r,i)=>{
+      const entrada=excelDateToISO(r[4]);
+      const salida=excelDateToISO(r[5]);
+      const dEntrada=entrada?parseLocalDate(entrada):null;
+      const año=dEntrada?dEntrada.getFullYear():(parseInt(r[3])||new Date().getFullYear());
+      const mes=dEntrada?dEntrada.getMonth()+1:(parseInt(r[7])||1);
+      return {
+        rowIndex:i+3, // actual sheet row (1-indexed, rows start at row 3)
+        nombre:r[0]||'',relacion:r[1]||'',epoca:r[2]||'',
+        año, entrada, salida,
+        noches:parseInt(r[6])||0, mes,
+        aseo:parseNum(r[8]),total:parseNum(r[9]),
+        ganancia:parseNum(r[13]),totalRec:parseNum(r[16]),
+      };
+    });
+    const grows=resG.values||[];
+    gastos=grows.filter(r=>r[0]&&r[0].trim()&&r[2]).map(r=>({
+      desc:r[0]||'',
+      cat:r[1]||'otros',
+      fecha:excelDateToISO(r[2]),
+      monto:parseNum(r[3]),
+      medio:r[4]||'—',
+    }));
+    render();renderGastos();updateHeaderStats();
+    setSyncStatus('synced','✓ Sincronizado');
+    showToast(`✓ ${records.length} reservas · ${gastos.length} gastos`);
+  }catch(e){
+    setSyncStatus('error','✗ Error');
+    showToast('❌ Error de conexión');
+    console.error(e);
+  }
+}
+
+// ── ADD RESERVA ───────────────────────────────────────
+async function addRecord(){
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const relacion=document.getElementById('f-relacion').value;
+  const epoca=document.getElementById('f-epoca').value;
+  const entrada=document.getElementById('f-entrada').value;
+  const salida=document.getElementById('f-salida').value;
+  const aseo=parseFloat(document.getElementById('f-aseo').value)||0;
+  const total=parseFloat(document.getElementById('f-total').value)||0;
+  if(!nombre){showToast('⚠️ Ingresa el nombre');return;}
+  if(!entrada||!salida){showToast('⚠️ Ingresa fechas');return;}
+  if(!total&&relacion!=='nosotros'){showToast('⚠️ Ingresa el valor total');return;}
+  const noches=Math.round((new Date(salida)-new Date(entrada))/86400000);
+  if(noches<=0){showToast('⚠️ La salida debe ser después de la entrada');return;}
+  const año=new Date(entrada).getFullYear(),mes=new Date(entrada).getMonth()+1;
+  const ganancia=total-aseo,pxN=noches>0?Math.round(ganancia/noches):0;
+  const fd=d=>{const[y,m,day]=d.split('-');return`${parseInt(day)}/${parseInt(m)}/${y}`;};
+  const btn=document.getElementById('btn-add');
+  btn.disabled=true;btn.textContent='Guardando...';
+  setSyncStatus('syncing','⬤ Guardando...');
+  try{
+    if(accessToken) await sheetsAppend('registros',[[nombre,relacion,epoca,año,fd(entrada),fd(salida),noches,mes,aseo,total,pxN,'','',ganancia,1,1,total,total,0,0,0]]);
+    records.push({nombre,relacion,epoca,año,entrada,salida,noches,mes,aseo,total,ganancia,totalRec:total});
+    ['f-nombre','f-entrada','f-salida','f-total'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-aseo').value='40000';
+    document.getElementById('calc-preview').style.display='none';
+    render();updateHeaderStats();
+    setSyncStatus('synced','✓ Guardado');
+    showToast(`✓ ${nombre} — Ganancia: ${fmt(ganancia)}`);
+  }catch(e){setSyncStatus('error','✗ Error');showToast('❌ No se pudo guardar');console.error(e);}
+  btn.disabled=false;btn.textContent='＋ Agregar reserva';
+}
+
+// ── ADD GASTO ─────────────────────────────────────────
+async function addGasto(){
+  const desc=document.getElementById('g-desc').value.trim();
+  const cat=document.getElementById('g-cat').value;
+  const fecha=document.getElementById('g-fecha').value;
+  const monto=parseFloat(document.getElementById('g-monto').value)||0;
+  const medio=document.getElementById('g-medio').value;
+  if(!desc){showToast('⚠️ Ingresa la descripción');return;}
+  if(!fecha){showToast('⚠️ Ingresa la fecha');return;}
+  if(!monto){showToast('⚠️ Ingresa el monto');return;}
+  const btn=document.getElementById('btn-gasto');
+  btn.disabled=true;btn.textContent='Guardando...';
+  setSyncStatus('syncing','⬤ Guardando...');
+  try{
+    const fd=d=>{const[y,m,day]=d.split('-');return`${parseInt(day)}/${parseInt(m)}/${y}`;};
+    // Sheet columns: descripcion | categoria | fecha | monto | medio_pago
+    if(accessToken) await sheetsAppend('gastos',[[desc,cat,fd(fecha),monto,medio]]);
+    gastos.push({desc,cat,fecha,monto,medio});
+    ['g-desc','g-fecha','g-monto'].forEach(id=>document.getElementById(id).value='');
+    renderGastos();updateHeaderStats();
+    setSyncStatus('synced','✓ Guardado');
+    showToast(`✓ Gasto "${desc}" — ${fmt(monto)} · ${medio}`);
+  }catch(e){setSyncStatus('error','✗ Error');showToast('❌ No se pudo guardar');console.error(e);}
+  btn.disabled=false;btn.textContent='＋ Agregar gasto';
+}
+
+// ── RENDER RESERVAS ───────────────────────────────────
+function render(){
+  const tbody=document.getElementById('table-body');
+  const empty=document.getElementById('empty-state');
+  let f=records.filter(r=>{
+    if(activeFilter==='todos')return true;
+    if(activeFilter==='nosotros')return r.relacion==='nosotros';
+    // Exact match for specific relations (familia_1, amigo_2, etc)
+    if(['familia_1','familia_2','amigo_1','amigo_2','Booking','referido','airbnb'].includes(activeFilter))
+      return r.relacion===activeFilter;
+    return r.relacion.toLowerCase().includes(activeFilter);
+  });
+  f=[...f].sort((a,b)=>new Date(b.entrada||0)-new Date(a.entrada||0));
+  if(!f.length&&accessToken){tbody.innerHTML='';empty.style.display='block';}
+  else{
+    empty.style.display='none';
+    tbody.innerHTML=f.map((r,i)=>{
+      const pxn=r.noches>0?Math.round(r.ganancia/r.noches):0;
+      const idx=records.indexOf(r);
+      return`<tr>
+        <td><strong>${r.nombre}</strong></td><td>${relBadge(r.relacion)}</td>
+        <td><span class="epoca-badge">${r.epoca||'—'}</span></td>
+        <td class="mono">${fmtDate(r.entrada)}</td><td class="mono">${fmtDate(r.salida)}</td>
+        <td class="num">${r.noches}</td><td class="num">${r.aseo?fmt(r.aseo):'—'}</td>
+        <td class="num pos">${fmt(r.total)}</td>
+        <td class="num" style="color:var(--accent);font-weight:600">${fmt(r.ganancia)}</td>
+        <td class="num">${fmt(pxn)}</td>
+        <td><button onclick="editRecord(${idx})" title="Editar" style="background:none;border:none;cursor:pointer;font-size:.85rem;padding:2px 4px;color:var(--muted)">✏️</button></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// ── RENDER GASTOS ─────────────────────────────────────
+function renderGastos(){
+  const tbody=document.getElementById('gasto-body');
+  const empty=document.getElementById('gasto-empty');
+  let f=gastos.filter(g=>gastoFilter==='todos'||g.cat===gastoFilter);
+  f=[...f].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  if(!f.length&&accessToken){tbody.innerHTML='';empty.style.display='block';}
+  else{
+    empty.style.display='none';
+    const MEDIO_ICON={'CMR':'💳','Itau':'🏦','Tenpo':'📱','Bci':'🏦','Banco Chile':'🏦','Efectivo':'💵'};
+    tbody.innerHTML=f.map(g=>`<tr>
+      <td><strong>${g.desc}</strong></td>
+      <td>${catBadge(g.cat)}</td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:.72rem;background:var(--tag-bg);padding:2px 8px;border-radius:4px;white-space:nowrap">${MEDIO_ICON[g.medio]||'💳'} ${g.medio||'—'}</span></td>
+      <td class="mono">${fmtDate(g.fecha)}</td>
+      <td class="num neg">${fmt(g.monto)}</td>
+    </tr>`).join('');
+  }
+  // resumen por categoría en sidebar
+  const bycat={};
+  gastos.forEach(g=>{bycat[g.cat]=(bycat[g.cat]||0)+g.monto;});
+  document.getElementById('gasto-cat-resumen').innerHTML=Object.entries(bycat)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([cat,sum])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+      ${catBadge(cat)}<span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent)">${fmt(sum)}</span>
+    </div>`).join('');
+
+  // Resumen por medio de pago
+  const bymedio={};
+  gastos.forEach(g=>{const m=g.medio||'—';bymedio[m]=(bymedio[m]||0)+g.monto;});
+  const MEDIO_ICON={'CMR':'💳','Itau':'🏦','Tenpo':'📱','Bci':'🏦','Banco Chile':'🏦','Efectivo':'💵'};
+  const medioHTML=Object.entries(bymedio).sort((a,b)=>b[1]-a[1]).map(([med,sum])=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:'DM Mono',monospace;font-size:.7rem">${MEDIO_ICON[med]||'💳'} ${med}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--accent)">${fmt(sum)}</span>
+    </div>`).join('');
+  const medioEl=document.getElementById('gasto-medio-resumen');
+  if(medioEl) medioEl.innerHTML=medioHTML||'<span style="font-size:.7rem;color:var(--muted)">Sin datos</span>';
+}
+
+// ── RENDER BALANCE ────────────────────────────────────
+function renderBalance(){
+  if(!records.length&&!gastos.length) return;
+  const real=records.filter(r=>r.relacion!=='nosotros'&&r.ganancia>0);
+  const totIng=real.reduce((s,r)=>s+(r.ganancia||0),0);
+  const totGas=gastos.reduce((s,g)=>s+(g.monto||0),0);
+  const neto=totIng-totGas;
+  document.getElementById('bal-ingresos').textContent=fmtM(totIng);
+  document.getElementById('bal-ing-sub').textContent=real.length+' reservas reales';
+  document.getElementById('bal-gastos').textContent=fmtM(totGas);
+  document.getElementById('bal-gas-sub').textContent=gastos.length+' gastos registrados';
+  const netEl=document.getElementById('bal-neto');
+  netEl.textContent=fmtM(Math.abs(neto));
+  netEl.className='sc-val '+(neto>=0?'pos':'neg');
+
+  // Ocupación: contar días reales arrendados en últimos 365 días
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const hace365=new Date(hoy);hace365.setDate(hace365.getDate()-365);
+  let diasArrendados=0,diasDisp=365;
+  real.forEach(r=>{
+    if(!r.entrada||!r.salida)return;
+    const ini=new Date(r.entrada),fin=new Date(r.salida);
+    const start=new Date(Math.max(ini,hace365));
+    const end=new Date(Math.min(fin,hoy));
+    if(end>start) diasArrendados+=Math.round((end-start)/86400000);
+  });
+  document.getElementById('bal-ocup').textContent=diasDisp>0?Math.round(diasArrendados/diasDisp*100)+'%':'—';
+
+  // Year selector para balance
+  const years=[...new Set([
+    ...real.map(r=>String(r.año||new Date(r.entrada).getFullYear())),
+    ...gastos.map(g=>g.fecha?String(new Date(g.fecha).getFullYear()):'')
+  ])].filter(Boolean).sort();
+  if(!balSelectedYear) balSelectedYear=years[years.length-1];
+  document.getElementById('bal-year-sel').innerHTML=years.map(y=>`<button class="yr-btn ${y===balSelectedYear?'active':''}" onclick="balSelectYear('${y}',this)">${y}</button>`).join('');
+  renderBalanceCharts(balSelectedYear);
+}
+
+function balSelectYear(y,btn){
+  balSelectedYear=y;
+  document.querySelectorAll('#bal-year-sel .yr-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBalanceCharts(y);
+}
+
+// Distribuye ganancia de una reserva proporcionalmente por mes
+function prorratear(r){
+  if(!r.entrada||!r.salida||!r.ganancia||r.ganancia<=0) return [];
+  const ini=new Date(r.entrada);
+  const fin=new Date(r.salida);
+  // Validate dates are real
+  if(isNaN(ini.getTime())||isNaN(fin.getTime())) return [];
+  ini.setHours(0,0,0,0); fin.setHours(0,0,0,0);
+  const totalNoches=Math.round((fin-ini)/86400000);
+  if(totalNoches<=0||totalNoches>730) return []; // sanity check max 2 years
+  const result=[];
+  let cur=new Date(ini);
+  let safety=0;
+  while(cur<fin && safety<24){
+    safety++;
+    const nextMonth=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+    const segEnd=fin<nextMonth?fin:nextMonth;
+    const noches=Math.round((segEnd-cur)/86400000);
+    if(noches>0){
+      const monto=Math.round((r.ganancia*noches)/totalNoches);
+      result.push({year:String(cur.getFullYear()),month:cur.getMonth(),monto});
+    }
+    cur=nextMonth;
+  }
+  return result;
+}
+
+function renderBalanceCharts(year){
+  // Monthly breakdown con prorrateo proporcional
+  const ingMes=Array(12).fill(0),gasMes=Array(12).fill(0);
+  records.filter(r=>r.relacion!=='nosotros'&&r.ganancia>0).forEach(r=>{
+    prorratear(r).filter(p=>p.year===year).forEach(p=>{ingMes[p.month]+=p.monto;});
+  });
+  gastos.filter(g=>g.fecha&&String(new Date(g.fecha).getFullYear())===year)
+    .forEach(g=>{gasMes[new Date(g.fecha).getMonth()]+=g.monto||0;});
+
+  if(chartBalance) chartBalance.destroy();
+  chartBalance=new Chart(document.getElementById('chart-balance'),{
+    type:'bar',
+    data:{labels:MESES_SHORT,datasets:[
+      {label:'Ingresos',data:ingMes,backgroundColor:'#2a6e3f99',borderColor:'#2a6e3f',borderWidth:1.5,borderRadius:4},
+      {label:'Gastos',data:gasMes,backgroundColor:'#c8472a99',borderColor:'#c8472a',borderWidth:1.5,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Mono',size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.raw)}`}}},
+      scales:{y:{ticks:{callback:v=>fmtM(v),font:{family:'DM Mono',size:10}},grid:{color:'#e0d9cf'}},x:{ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}}}}
+  });
+
+  // Gastos por categoría (donut)
+  const bycat={};
+  gastos.forEach(g=>{if(g.fecha&&String(new Date(g.fecha).getFullYear())===year){bycat[g.cat]=(bycat[g.cat]||0)+g.monto;}});
+  if(chartGastosCat) chartGastosCat.destroy();
+  const cats=Object.keys(bycat);
+  chartGastosCat=new Chart(document.getElementById('chart-gastos-cat'),{
+    type:'doughnut',
+    data:{labels:cats.map(c=>CAT_LABELS[c]||c),datasets:[{data:cats.map(c=>bycat[c]),backgroundColor:cats.map(c=>CAT_BORDER[c]),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{family:'DM Mono',size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${fmt(ctx.raw)}`}}}}
+  });
+
+  // Balance mes a mes
+  document.getElementById('balance-months').innerHTML=MESES_SHORT.map((m,i)=>{
+    const ing=ingMes[i],gas=gasMes[i],net=ing-gas;
+    if(ing===0&&gas===0) return '';
+    const cls=net>=0?'pos':'neg';
+    return`<div class="month-pill">
+      <span class="mp-label">${MESES_FULL[i]} ${year}</span>
+      <div class="mp-vals">
+        <span class="mp-val" style="color:var(--accent2)">↑ ${fmt(ing)}</span>
+        <span class="mp-val" style="color:var(--accent)">↓ ${fmt(gas)}</span>
+        <span class="mp-val mp-net ${cls}">${net>=0?'+':''}${fmt(net)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER STATS ──────────────────────────────────────
+function renderStats(){
+  if(!records.length)return;
+  const real=records.filter(r=>r.relacion!=='nosotros'&&r.ganancia>0);
+  const totG=real.reduce((s,r)=>s+(r.ganancia||0),0);
+  const totN=real.reduce((s,r)=>s+(r.noches||0),0);
+  document.getElementById('sc-total').textContent=fmtM(totG);
+  document.getElementById('sc-total-sub').textContent=real.length+' reservas';
+  document.getElementById('sc-noches').textContent=totN;
+  document.getElementById('sc-pxn').textContent=fmt(totN>0?Math.round(totG/totN):0);
+  const byYear={};
+  real.forEach(r=>{const y=String(r.año||new Date(r.entrada).getFullYear());if(!byYear[y])byYear[y]={ganancia:0,total:0,noches:0,count:0};byYear[y].ganancia+=r.ganancia||0;byYear[y].total+=r.total||0;byYear[y].noches+=r.noches||0;byYear[y].count++;});
+  const years=Object.keys(byYear).sort();
+  const mejorAño=years.reduce((a,b)=>byYear[a].ganancia>byYear[b].ganancia?a:b);
+  document.getElementById('sc-mejor-año').textContent=mejorAño;
+  document.getElementById('sc-mejor-año-sub').textContent=fmtM(byYear[mejorAño].ganancia);
+  if(chartAños)chartAños.destroy();
+  // Calculate % change and difference between years for annotations
+  const pctChange=years.map((y,i)=>{
+    if(i===0)return null;
+    const prev=byYear[years[i-1]].ganancia;
+    return prev>0?Math.round((byYear[y].ganancia-prev)/prev*100):null;
+  });
+  chartAños=new Chart(document.getElementById('chart-años'),{
+    type:'bar',
+    data:{labels:years,datasets:[{
+      label:'Ganancia neta',
+      data:years.map(y=>byYear[y].ganancia),
+      backgroundColor:years.map(y=>y==mejorAño?'#2a6e3f':'#c8472a'),
+      borderRadius:6,borderSkipped:false
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:ctx=>' '+fmt(ctx.raw),
+          afterLabel:ctx=>{
+            const i=ctx.dataIndex;
+            if(i===0)return '';
+            const prev=byYear[years[i-1]].ganancia;
+            const diff=byYear[years[i]].ganancia-prev;
+            const pct=prev>0?Math.round(diff/prev*100):0;
+            return[
+              ` vs ${years[i-1]}: ${diff>=0?'+':''}${fmt(diff)}`,
+              ` Variación: ${pct>=0?'+':''}${pct}%`
+            ];
+          }
+        }},
+      },
+      scales:{
+        y:{ticks:{callback:v=>fmtM(v),font:{family:'DM Mono',size:10}},grid:{color:'#e0d9cf'}},
+        x:{ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}}
+      }
+    }
+  });
+  // Show pct change labels below chart
+  document.getElementById('year-pct-row').innerHTML=years.map((y,i)=>{
+    if(i===0)return`<div style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted)">base</div>`;
+    const prev=byYear[years[i-1]].ganancia,cur=byYear[y].ganancia;
+    const pct=prev>0?Math.round((cur-prev)/prev*100):0;
+    const col=pct>=0?'var(--accent2)':'var(--accent)';
+    return`<div style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:.62rem;color:${col};font-weight:600">${pct>=0?'+':''}${pct}%</div>`;
+  }).join('');
+  if(!selectedYears.length)selectedYears=[...years].slice(-3);
+  document.getElementById('year-selector').innerHTML=years.map(y=>`<button class="yr-btn ${selectedYears.includes(y)?'active':''}" onclick="toggleYear('${y}',this)">${y}</button>`).join('');
+  renderMonthChart();
+  renderCumulativeChart();
+  const maxG=Math.max(...years.map(y=>byYear[y].ganancia));
+  document.getElementById('year-table-body').innerHTML=[...years].reverse().map(y=>{
+    const d=byYear[y],pxn=d.noches>0?Math.round(d.ganancia/d.noches):0,barW=Math.round((d.ganancia/maxG)*120);
+    return`<tr><td><strong>${y}</strong></td><td class="num">${d.count}</td><td class="num">${d.noches}</td><td class="num">${fmt(d.total)}</td><td class="num pos">${fmt(d.ganancia)}</td><td class="num">${fmt(pxn)}</td><td><span class="bar-inline" style="width:${barW}px"></span></td></tr>`;
+  }).join('');
+}
+
+function toggleYear(y,btn){
+  if(selectedYears.includes(y)){if(selectedYears.length===1)return;selectedYears=selectedYears.filter(x=>x!==y);btn.classList.remove('active');}
+  else{selectedYears.push(y);btn.classList.add('active');}
+  renderMonthChart();
+}
+function renderMonthChart(){
+  const PALETTE=['#c8472a','#2a6e3f','#1e4e8c','#c9922a','#7a3f8c','#2a7a8c'];
+  // Build monthly totals per year using prorrateo
+  const byYM={};
+  records.filter(r=>r.relacion!=='nosotros'&&r.ganancia>0).forEach(r=>{
+    prorratear(r).forEach(p=>{
+      if(!byYM[p.year]) byYM[p.year]=Array(12).fill(0);
+      byYM[p.year][p.month]+=p.monto;
+    });
+  });
+
+  const sortedYears=[...selectedYears].sort();
+
+  // ── Barras agrupadas por mes ──
+  const datasets=sortedYears.map((y,i)=>({
+    label:y,
+    data:(byYM[y]||Array(12).fill(0)).map(v=>Math.round(v)),
+    backgroundColor:PALETTE[i%PALETTE.length]+'bb',
+    borderColor:PALETTE[i%PALETTE.length],
+    borderWidth:1.5,
+    borderRadius:5,
+    borderSkipped:false,
+  }));
+
+  if(chartMeses) chartMeses.destroy();
+  chartMeses=new Chart(document.getElementById('chart-meses'),{
+    type:'bar',
+    data:{labels:MESES_SHORT,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'bottom',labels:{font:{family:'DM Mono',size:10},boxWidth:10,padding:12}},
+        tooltip:{
+          mode:'index',intersect:false,
+          position:'nearest',
+          yAlign:'bottom',
+          callbacks:{
+            title:ctx=>MESES_FULL[ctx[0].dataIndex],
+            label:ctx=>{
+              if(ctx.raw===0) return null;
+              return ` ${ctx.dataset.label}: ${fmt(ctx.raw)}`;
+            },
+            afterBody:ctx=>{
+              const valid=ctx.filter(c=>c.raw>0);
+              if(valid.length<2) return [];
+              const lines=[' '];
+              for(let i=1;i<valid.length;i++){
+                const prev=valid[i-1].raw, cur=valid[i].raw;
+                const diff=cur-prev;
+                const pct=prev>0?Math.round(diff/prev*100):null;
+                const arrow=diff>=0?'▲':'▼';
+                const pctStr=pct!==null?` (${pct>=0?'+':''}${pct}%)`:'';
+                lines.push(` ${arrow} vs ${valid[i-1].dataset.label}: ${diff>=0?'+':''}${fmt(diff)}${pctStr}`);
+              }
+              return lines;
+            }
+          }
+        }
+      },
+      onClick:(e,elements,chart)=>{
+        // Click anywhere to dismiss tooltip
+        chart.tooltip.setActiveElements([],[]);
+        chart.update();
+      },
+      scales:{
+        x:{ticks:{font:{family:'DM Mono',size:9}},grid:{display:false}},
+        y:{ticks:{callback:v=>v===0?'$0':fmtM(v),font:{family:'DM Mono',size:9}},grid:{color:'#e0d9cf'}}
+      }
+    }
+  });
+
+  // ── Tabla resumen debajo del gráfico ──
+  renderMonthTable(byYM, sortedYears);
+}
+
+function renderMonthTable(byYM, sortedYears){
+  const PALETTE=['#c8472a','#2a6e3f','#1e4e8c','#c9922a','#7a3f8c','#2a7a8c'];
+  const el=document.getElementById('month-diff-table');
+  if(!el) return;
+  if(sortedYears.length<2){el.innerHTML='';return;}
+
+  // Show only months that have data in any selected year
+  const activeMonths=MESES_SHORT.map((_,m)=>sortedYears.some(y=>(byYM[y]||[])[m]>0)?m:null).filter(m=>m!==null);
+  if(!activeMonths.length){el.innerHTML='';return;}
+
+  const baseYear=sortedYears[0];
+  const compYears=sortedYears.slice(1);
+
+  let html=`<div style="overflow-x:auto;margin-top:16px">
+  <table class="data-table" style="font-size:.74rem">
+    <thead><tr>
+      <th>Mes</th>
+      ${sortedYears.map((y,i)=>`<th class="num" style="color:${PALETTE[i%PALETTE.length]}">${y}</th>`).join('')}
+      ${compYears.map(y=>`<th class="num">vs ${sortedYears[0]}</th>`).join('')}
+    </tr></thead>
+    <tbody>`;
+
+  activeMonths.forEach(m=>{
+    const vals=sortedYears.map(y=>Math.round((byYM[y]||[])[m]||0));
+    const base=vals[0];
+    html+=`<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:.72rem">${MESES_FULL[m]}</td>
+      ${vals.map((v,i)=>`<td class="num" style="color:${v>0?PALETTE[i%PALETTE.length]:' var(--muted)'}">${v>0?fmtM(v):'—'}</td>`).join('')}
+      ${compYears.map((y,i)=>{
+        const cur=Math.round((byYM[y]||[])[m]||0);
+        if(!base||!cur) return '<td class="num" style="color:var(--muted)">—</td>';
+        const diff=cur-base;
+        const pct=Math.round(diff/base*100);
+        const col=diff>=0?'var(--accent2)':'var(--accent)';
+        return `<td class="num" style="color:${col};font-weight:600">${diff>=0?'+':''}${pct}%</td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  // Totals row
+  const totals=sortedYears.map(y=>Math.round(activeMonths.reduce((s,m)=>s+((byYM[y]||[])[m]||0),0)));
+  html+=`<tr style="border-top:2px solid var(--border);background:var(--tag-bg)">
+    <td><strong>Total</strong></td>
+    ${totals.map((v,i)=>`<td class="num" style="font-weight:700;color:${PALETTE[i%PALETTE.length]}">${fmtM(v)}</td>`).join('')}
+    ${compYears.map((y,i)=>{
+      const cur=totals[i+1],base=totals[0];
+      if(!base||!cur) return '<td></td>';
+      const diff=cur-base,pct=Math.round(diff/base*100);
+      const col=diff>=0?'var(--accent2)':'var(--accent)';
+      return `<td class="num" style="color:${col};font-weight:700">${diff>=0?'+':''}${pct}%</td>`;
+    }).join('')}
+  </tr>`;
+
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+
+
+// ── RENDER ACUMULADO ANUAL ────────────────────────────
+function renderCumulativeChart(){
+  const PALETTE=['#c8472a','#2a6e3f','#1e4e8c','#c9922a','#7a3f8c','#2a7a8c'];
+
+  // Build monthly totals per year via prorrateo
+  const byYM={};
+  records.filter(r=>r.relacion!=='nosotros'&&r.ganancia>0).forEach(r=>{
+    prorratear(r).forEach(p=>{
+      if(!byYM[p.year]) byYM[p.year]=Array(12).fill(0);
+      byYM[p.year][p.month]+=p.monto;
+    });
+  });
+
+  const allYears=Object.keys(byYM).sort();
+  if(!allYears.length) return;
+
+  // Default: last 3 years
+  if(!cumSelectedYears.length) cumSelectedYears=[...allYears].slice(-3);
+
+  // Year selector buttons
+  const sel=document.getElementById('cum-year-selector');
+  if(sel) sel.innerHTML=allYears.map(y=>`<button class="yr-btn ${cumSelectedYears.includes(y)?'active':''}" onclick="toggleCumYear('${y}',this)">${y}</button>`).join('');
+
+  // Build cumulative datasets — only up to last month with data for current year
+  const currentYear=String(new Date().getFullYear());
+  const currentMonth=new Date().getMonth();
+
+  const datasets=cumSelectedYears.sort().map((y,i)=>{
+    const monthly=byYM[y]||Array(12).fill(0);
+    // For current year, only show up to current month
+    const maxMonth=y===currentYear?currentMonth:11;
+    const cumData=[];
+    let running=0;
+    for(let m=0;m<=11;m++){
+      if(m<=maxMonth){
+        running+=monthly[m];
+        cumData.push(Math.round(running));
+      } else {
+        cumData.push(null); // no data yet
+      }
+    }
+    return {
+      label:y,
+      data:cumData,
+      borderColor:PALETTE[i%PALETTE.length],
+      backgroundColor:PALETTE[i%PALETTE.length]+'18',
+      tension:.4,
+      fill:i===0?false:'origin',
+      pointRadius:5,
+      pointHoverRadius:8,
+      borderWidth:2.5,
+      spanGaps:false,
+    };
+  });
+
+  if(chartAcumulado) chartAcumulado.destroy();
+  chartAcumulado=new Chart(document.getElementById('chart-acumulado'),{
+    type:'line',
+    data:{labels:MESES_SHORT,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'bottom',labels:{font:{family:'DM Mono',size:10},boxWidth:10,padding:14}},
+        tooltip:{
+          mode:'index',intersect:false,
+          position:'nearest',
+          yAlign:'bottom',
+          callbacks:{
+            title:ctx=>MESES_FULL[ctx[0].dataIndex]+' — Acumulado al mes',
+            label:ctx=>{
+              if(ctx.raw===null) return null;
+              return ` ${ctx.dataset.label}: ${fmt(ctx.raw)}`;
+            },
+            afterBody:ctx=>{
+              const valid=ctx.filter(c=>c.raw!==null&&c.raw>0);
+              if(valid.length<2) return [];
+              const lines=[' ', '── Diferencias ──'];
+              for(let i=1;i<valid.length;i++){
+                const prev=valid[i-1].raw, cur=valid[i].raw;
+                const diff=cur-prev;
+                const pct=prev>0?Math.round(diff/prev*100):0;
+                const arrow=diff>=0?'▲':'▼';
+                lines.push(` ${arrow} ${valid[i].dataset.label} vs ${valid[i-1].dataset.label}: ${diff>=0?'+':''}${fmt(diff)} (${pct>=0?'+':''}${pct}%)`);
+              }
+              return lines;
+            }
+          }
+        }
+      },
+      onClick:(e,elements,chart)=>{
+        chart.tooltip.setActiveElements([],[]);
+        chart.update();
+      },
+      scales:{
+        x:{ticks:{font:{family:'DM Mono',size:9}},grid:{color:'#f0ebe2'}},
+        y:{ticks:{callback:v=>v===0?'$0':fmtM(v),font:{family:'DM Mono',size:9}},grid:{color:'#e0d9cf'}}
+      }
+    }
+  });
+
+  // ── Monthly diff summary table below cumulative chart ──
+  renderCumDiffTable(byYM);
+}
+
+function toggleCumYear(y,btn){
+  if(cumSelectedYears.includes(y)){
+    if(cumSelectedYears.length===1) return;
+    cumSelectedYears=cumSelectedYears.filter(x=>x!==y);
+    btn.classList.remove('active');
+  } else {
+    cumSelectedYears.push(y);
+    btn.classList.add('active');
+  }
+  renderCumulativeChart();
+}
+
+function renderCumDiffTable(byYM){
+  const el=document.getElementById('cum-diff-table');
+  if(!el) return;
+  const years=[...cumSelectedYears].sort();
+  if(years.length<2){el.innerHTML='';return;}
+
+  const PALETTE=['#c8472a','#2a6e3f','#1e4e8c','#c9922a','#7a3f8c','#2a7a8c'];
+  const curY=String(new Date().getFullYear());
+  const curM=new Date().getMonth();
+
+  // Build cumulative per year
+  const cum={};
+  years.forEach(y=>{
+    const mo=byYM[y]||Array(12).fill(0);
+    const maxM=y===curY?curM:11;
+    let run=0;
+    cum[y]=mo.map((v,i)=>{if(i>maxM)return null;run+=v;return Math.round(run);});
+  });
+
+  // Only show months with data
+  const activeM=MESES_SHORT.map((_,m)=>years.some(y=>cum[y][m]!=null&&cum[y][m]>0)?m:null).filter(m=>m!==null);
+  if(!activeM.length){el.innerHTML='';return;}
+
+  const base=years[0];
+  let html=`<div style="overflow-x:auto;margin-top:14px">
+  <table class="data-table" style="font-size:.72rem">
+    <thead><tr>
+      <th>Mes</th>
+      ${years.map((y,i)=>`<th class="num" style="color:${PALETTE[i%PALETTE.length]}">${y}</th>`).join('')}
+      ${years.slice(1).map(y=>`<th class="num">vs ${base}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  activeM.forEach(m=>{
+    const vals=years.map(y=>cum[y][m]);
+    const baseV=vals[0];
+    html+=`<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:.7rem">${MESES_SHORT[m]}</td>
+      ${vals.map((v,i)=>`<td class="num" style="color:${v!=null?PALETTE[i%PALETTE.length]:'var(--muted)'}">${v!=null?fmtM(v):'—'}</td>`).join('')}
+      ${years.slice(1).map((y,i)=>{
+        const cur=cum[y][m];
+        if(cur==null||!baseV) return '<td class="num" style="color:var(--muted)">—</td>';
+        const diff=cur-baseV, pct=Math.round(diff/baseV*100);
+        const col=diff>=0?'var(--accent2)':'var(--accent)';
+        return `<td class="num" style="color:${col};font-weight:600">${diff>=0?'+':''}${pct}%<br><span style="font-size:.65rem;font-weight:400">${diff>=0?'+':''}${fmtM(Math.abs(diff))}</span></td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+// ── RENDER NOSOTROS ───────────────────────────────────
+function renderNosotros(){
+  // Sort by real date (entrada is ISO yyyy-mm-dd)
+  const nos=records.filter(r=>r.relacion==='nosotros').sort((a,b)=>new Date(b.entrada||0)-new Date(a.entrada||0));
+  document.getElementById('nos-total').textContent=nos.length;
+  document.getElementById('nos-noches').textContent=nos.reduce((s,r)=>s+(r.noches||0),0);
+  if(nos.length){const ul=nos[0];document.getElementById('nos-ultima').textContent=fmtDate(ul.entrada);document.getElementById('nos-ultima-sub').textContent=ul.noches+' noches · '+ul.epoca;}
+  document.getElementById('nos-table-body').innerHTML=nos.map((r,i)=>`<tr>
+    <td><strong>#${nos.length-i}</strong></td>
+    <td><span class="nos-chip">${r.epoca||'—'}</span></td>
+    <td class="mono">${fmtDate(r.entrada)}</td><td class="mono">${fmtDate(r.salida)}</td>
+    <td class="num">${r.noches}</td><td>${r.año}</td>
+  </tr>`).join('');
+}
+
+// ── RENDER CALENDARIO ─────────────────────────────────
+// Parse ISO date string safely without timezone shift
+function parseLocalDate(iso){
+  if(!iso) return null;
+  const s=String(iso).trim();
+  // Handle ISO yyyy-mm-dd
+  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)){
+    const [y,m,d]=s.split('-').map(Number);
+    if(y>1900&&m>=1&&m<=12&&d>=1&&d<=31) return new Date(y,m-1,d);
+  }
+  // Handle dd/mm/yyyy
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){
+    const [d,m,y]=s.split('/').map(Number);
+    if(y>1900&&m>=1&&m<=12&&d>=1&&d<=31) return new Date(y,m-1,d);
+  }
+  return null;
+}
+
+function renderCalendar(){
+  document.getElementById('cal-title').textContent=MESES_FULL[calMonth]+' '+calYear;
+  const grid=document.getElementById('cal-grid');
+
+  // Day headers
+  grid.innerHTML=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
+    .map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay=new Date(calYear,calMonth,1).getDay(); // 0=Sun
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const offset=firstDay===0?6:firstDay-1; // Mon-first offset
+  const today=new Date();today.setHours(0,0,0,0);
+
+  // Pre-parse all record dates once — critical for accuracy
+  const parsed=records.map(r=>{
+    const en=parseLocalDate(r.entrada);
+    const ex=parseLocalDate(r.salida);
+    return {...r,_en:en,_ex:ex,_valid:!!(en&&ex&&ex>en)};
+  }).filter(r=>r._valid);
+
+  // Empty offset cells before day 1
+  for(let i=0;i<offset;i++) grid.innerHTML+=`<div class="cal-day empty"></div>`;
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dayDate=new Date(calYear,calMonth,d);
+    const dayTime=dayDate.getTime();
+    const isToday=dayTime===today.getTime();
+    const isPast=dayDate<today;
+
+    // Reservations active on this day: entrada <= day < salida
+    const dayEvents=parsed.filter(r=>{
+      if(!r._valid) return false;
+      return dayTime>=r._en.getTime() && dayTime<r._ex.getTime();
+    });
+    // Guests checking out today (salida day = they leave this morning)
+    const checkouts=parsed.filter(r=>{
+      if(!r._valid) return false;
+      return dayTime===r._ex.getTime();
+    });
+
+    const hasReal=dayEvents.some(e=>e.relacion!=='nosotros');
+    const hasNos=dayEvents.some(e=>e.relacion==='nosotros');
+
+    let cls='cal-day';
+    if(isToday) cls+=' today';
+    if(isPast)  cls+=' past';
+    if(hasReal) cls+=' occupied';
+    else if(hasNos) cls+=' nosotros-day';
+
+    const evHTML=dayEvents.map(ev=>{
+      const isCheckin=dayTime===ev._en.getTime();
+      const isCheckout=dayTime===ev._ex.getTime();
+      const firstName=ev.nombre.replace(/[()]/g,'').trim().split(' ')[0];
+      const lastName=ev.nombre.trim().split(' ').slice(1,2).join('');
+      const displayName=lastName?`${firstName} ${lastName[0]}.`:firstName;
+      const evCls=evClass(ev.relacion);
+      const noches=ev.noches>0?` (${ev.noches}n)`:'';
+      if(isCheckin){
+        return `<div class="cal-event ${evCls}" title="✈ Entrada: ${ev.nombre}${noches}">✈ ${displayName}</div>`;
+      } else {
+        // Continuation day — show subtle bar with name
+        return `<div class="cal-event ${evCls}" style="opacity:.48;font-size:.52rem" title="${ev.nombre} · día ${Math.round((dayTime-ev._en.getTime())/86400000)+1}/${ev.noches}">━ ${firstName}</div>`;
+      }
+    }).join('');
+
+    // Checkout indicator (small badge for guests leaving today)
+    const checkoutHTML=checkouts.map(ev=>{
+      const firstName=ev.nombre.replace(/[()]/g,'').trim().split(' ')[0];
+      return `<div style="font-size:.52rem;color:var(--muted);font-family:'DM Mono',monospace;padding:1px 4px">🏁 ${firstName}</div>`;
+    }).join('');
+
+    grid.innerHTML+=`<div class="${cls}" style="position:relative"><div class="cal-day-num">${d}</div>${evHTML}${checkoutHTML}</div>`;
+  }
+}
+function changeMonth(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+
+// ── HEADER STATS ──────────────────────────────────────
+function updateHeaderStats(){
+  const real=records.filter(r=>r.relacion!=='nosotros'&&r.ganancia>0);
+  const totIng=real.reduce((s,r)=>s+(r.ganancia||0),0);
+  const totGas=gastos.reduce((s,g)=>s+(g.monto||0),0);
+  const neto=totIng-totGas;
+  document.getElementById('hstat-ingresos').textContent=records.length?fmtM(totIng):'$—';
+  document.getElementById('hstat-gastos').textContent=gastos.length?fmtM(totGas):'$—';
+  const netoEl=document.getElementById('hstat-neto');
+  netoEl.textContent=records.length?fmtM(Math.abs(neto)):'$—';
+  netoEl.style.color=neto>=0?'#81c784':'#ef9a9a';
+}
+
+// ── FILTERS ───────────────────────────────────────────
+function setFilter(f,btn){activeFilter=f;document.querySelectorAll('#view-registros .filters .filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+function setGastoFilter(f,btn){gastoFilter=f;document.querySelectorAll('#gasto-filters .filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderGastos();}
+
+// ── LIVE PREVIEW ──────────────────────────────────────
+function updatePreview(){
+  const entrada=document.getElementById('f-entrada').value;
+  const salida=document.getElementById('f-salida').value;
+  const aseo=parseFloat(document.getElementById('f-aseo').value)||0;
+  const total=parseFloat(document.getElementById('f-total').value)||0;
+  const preview=document.getElementById('calc-preview');
+  if(!entrada||!salida||!total){preview.style.display='none';return;}
+  const noches=Math.round((new Date(salida)-new Date(entrada))/86400000);
+  if(noches<=0){preview.style.display='none';return;}
+  const ganancia=total-aseo;
+  preview.style.display='block';
+  document.getElementById('cp-noches').textContent=noches+' noches';
+  document.getElementById('cp-aseo').textContent=fmt(aseo);
+  document.getElementById('cp-pxnoche').textContent=fmt(Math.round(ganancia/noches))+'/noche';
+  document.getElementById('cp-ganancia').textContent=fmt(ganancia);
+}
+['f-entrada','f-salida','f-aseo','f-total'].forEach(id=>document.getElementById(id).addEventListener('input',updatePreview));
+
+
+// ── EDITAR REGISTRO ───────────────────────────────────
+let editingIdx=null;
+function editRecord(idx){
+  editingIdx=idx;
+  const r=records[idx];
+  document.getElementById('e-nombre').value=r.nombre||'';
+  document.getElementById('e-relacion').value=r.relacion||'airbnb';
+  if(document.getElementById('e-epoca')) document.getElementById('e-epoca').value=r.epoca||'temp. alta';
+  document.getElementById('e-entrada').value=r.entrada||'';
+  document.getElementById('e-salida').value=r.salida||'';
+  document.getElementById('e-aseo').value=r.aseo||0;
+  document.getElementById('e-total').value=r.total||0;
+  document.getElementById('edit-modal').style.display='flex';
+}
+function closeModal(){
+  document.getElementById('edit-modal').style.display='none';
+  editingIdx=null;
+}
+async function saveRecord(){
+  if(editingIdx===null)return;
+  const r=records[editingIdx];
+  const nombre=document.getElementById('e-nombre').value.trim();
+  const relacion=document.getElementById('e-relacion').value;
+  const epoca=document.getElementById('e-epoca')?document.getElementById('e-epoca').value:(r.epoca||'');
+  const entrada=document.getElementById('e-entrada').value;
+  const salida=document.getElementById('e-salida').value;
+  const aseo=parseFloat(document.getElementById('e-aseo').value)||0;
+  const total=relacion==='nosotros'?0:(parseFloat(document.getElementById('e-total').value)||0);
+
+  if(!nombre){showToast('⚠️ Ingresa el nombre');return;}
+  if(!entrada||!salida){showToast('⚠️ Ingresa fechas');return;}
+
+  const enD=parseLocalDate(entrada), exD=parseLocalDate(salida);
+  if(!enD||!exD){showToast('⚠️ Fechas inválidas');return;}
+  const noches=Math.round((exD-enD)/86400000);
+  if(noches<=0){showToast('⚠️ La salida debe ser después de la entrada');return;}
+
+  const año=enD.getFullYear();
+  const mes=enD.getMonth()+1;
+  const ganancia=total-aseo;
+  const pxN=noches>0?Math.round(ganancia/noches):0;
+
+  // Format date as dd/mm/yyyy for Sheets
+  const fd=iso=>{
+    const [y,m,d]=iso.split('-');
+    return `${parseInt(d)}/${parseInt(m)}/${y}`;
+  };
+
+  // Update local record immediately
+  Object.assign(r,{nombre,relacion,epoca,entrada,salida,noches,aseo,total,ganancia,año,mes,totalRec:total});
+
+  closeModal();
+  render();
+  renderCalendar();
+  showToast(`✓ ${nombre} actualizado — ${noches} noches`);
+
+  // Update Google Sheets row in background
+  if(accessToken && r.rowIndex){
+    setSyncStatus('syncing','⬤ Guardando...');
+    try{
+      // Columns A-N: nombre, relacion, epoca, año, entrada, salida, noches, mes, aseo, total, pxN, '', '', ganancia
+      const rowValues=[nombre,relacion,epoca,año,fd(entrada),fd(salida),noches,mes,aseo,total,pxN,'','',ganancia];
+      await sheetsUpdateRow(r.rowIndex, rowValues);
+      setSyncStatus('synced','✓ Guardado en Sheets');
+      showToast(`✓ ${nombre} guardado en Google Sheets`);
+    }catch(e){
+      setSyncStatus('error','✗ Error al actualizar Sheets');
+      showToast('⚠️ Cambio local OK, pero no se pudo actualizar Sheets. Edita en la planilla si es necesario.');
+      console.error('sheetsUpdateRow error:',e);
+    }
+  }
+}
+function deleteRecordModal(){
+  if(editingIdx===null)return;
+  if(!confirm('¿Eliminar este registro? Solo se borrará localmente, no en Google Sheets.'))return;
+  records.splice(editingIdx,1);
+  closeModal();
+  render();
+  updateHeaderStats();
+  showToast('Registro eliminado localmente');
+}
+
+// ── TOGGLE NÚMEROS ────────────────────────────────────
+const numsVisible={balance:true,stats:true};
+function toggleNums(section){
+  numsVisible[section]=!numsVisible[section];
+  const show=numsVisible[section];
+  const btnId=section==='balance'?'toggle-bal':'toggle-stats';
+  document.getElementById(btnId).textContent=show?'👁 Ocultar números':'🙈 Mostrar números';
+  const view=document.getElementById('view-'+section);
+  view.querySelectorAll('.sc-val,.sc-sub').forEach(el=>{
+    el.style.filter=show?'none':'blur(8px)';
+    el.style.userSelect=show?'auto':'none';
+  });
+  if(section==='balance'){
+    view.querySelectorAll('.mp-vals').forEach(el=>el.style.filter=show?'none':'blur(8px)');
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────
+// ── TOGGLE NUMBERS ───────────────────────────────────
+const numbersHidden={stats:false,balance:false};
+function toggleNumbers(section){
+  numbersHidden[section]=!numbersHidden[section];
+  const hidden=numbersHidden[section];
+  const btn=document.getElementById('toggle-'+section);
+  btn.textContent=hidden?'👁 Mostrar cifras':'👁 Ocultar cifras';
+  // Find all sc-val and num elements within the section view
+  const view=document.getElementById('view-'+section);
+  if(!view) return;
+  view.querySelectorAll('.sc-val,.sc-sub,.num,.yt .num,.month-pill .mp-val,.month-pill .mp-net').forEach(el=>{
+    el.style.filter=hidden?'blur(6px)':'none';
+    el.style.userSelect=hidden?'none':'auto';
+  });
+  // Also blur chart canvas
+  view.querySelectorAll('canvas').forEach(el=>{
+    el.style.filter=hidden?'blur(8px)':'none';
+  });
+  // And the diff table
+  const dt=view.querySelector('#month-diff-table');
+  if(dt) dt.style.filter=hidden?'blur(6px)':'none';
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+
+// set today as default date for gasto
+document.getElementById('g-fecha').value=new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
